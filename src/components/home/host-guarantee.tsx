@@ -1,7 +1,14 @@
+
 "use client";
 
 import * as React from "react";
-import { Headphones, ShieldCheck, UserCheck, Wrench } from "lucide-react";
+import {
+  Headphones,
+  ShieldCheck,
+  UserCheck,
+  Wrench,
+} from "lucide-react";
+
 import { GUARANTEES } from "@/data/studio-catalog";
 
 export function HostGuarantee() {
@@ -9,29 +16,38 @@ export function HostGuarantee() {
     switch (name) {
       case "ShieldCheck":
         return <ShieldCheck className="size-6 text-emerald-500" />;
+
       case "UserCheck":
         return <UserCheck className="size-6 text-cyan-500" />;
+
       case "Wrench":
         return <Wrench className="size-6 text-amber-500" />;
+
       case "Headphones":
         return <Headphones className="size-6 text-[#db1a6e]" />;
+
       default:
         return <ShieldCheck className="size-6 text-[#db1a6e]" />;
     }
   };
 
   return (
-    <section className="border-t border-slate-200/80 bg-slate-50/50 py-16 sm:py-24 dark:border-slate-800 dark:bg-slate-900/30">
+    <section
+      id="host-guarantee"
+      className="scroll-mt-24 border-t border-slate-200/80 bg-slate-50/50 py-16 sm:py-24 dark:border-slate-800 dark:bg-slate-900/30"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
+
         {/* Section Header */}
         <div className="text-center">
           <div className="text-xs font-bold uppercase tracking-wider text-[#db1a6e]">
             Trust & Security
           </div>
+
           <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl dark:text-white">
             Host guarantee and creator support
           </h2>
+
           <p className="mx-auto mt-2 max-w-xl text-base text-slate-600 dark:text-slate-400">
             Every booking is fully covered, from the moment you reserve until the shoot wraps.
           </p>
@@ -52,12 +68,14 @@ export function HostGuarantee() {
                 <h3 className="mt-5 text-lg font-bold text-slate-950 dark:text-white">
                   {item.title}
                 </h3>
+
                 <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                   {item.description}
                 </p>
               </div>
 
               <div className="mt-6 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="size-4" />
                 <span>Verified protection</span>
               </div>
             </div>
