@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/auth-context";
+import { apiFetch } from "@/lib/api";
 
 const CATEGORIES = [
   "Photo Studio",
@@ -42,6 +43,20 @@ const INITIAL_AMENITIES = [
   "Parking",
 ];
 
+interface NewStudio {
+  title: string;
+  category: string;
+  location: string;
+  price: number;
+  deposit: number;
+  capacity: number;
+  image: string;
+  amenities: string[];
+  overview: string;
+  rating: number;
+  reviewsCount: number;
+}
+
 export default function AddStudioPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
@@ -59,7 +74,8 @@ export default function AddStudioPage() {
   const [deposit, setDeposit] = React.useState("");
   const [capacity, setCapacity] = React.useState("");
   const [imageUrl, setImageUrl] = React.useState("");
-  const [amenities, setAmenities] = React.useState<string[]>(INITIAL_AMENITIES);
+  const [amenities, setAmenities] =
+    React.useState<string[]>(INITIAL_AMENITIES);
   const [overview, setOverview] = React.useState("");
 
   const [submitting, setSubmitting] = React.useState(false);
@@ -102,49 +118,48 @@ export default function AddStudioPage() {
       return;
     }
 
+    if (Number(price) <= 0 || !Number.isFinite(Number(price))) {
+      setErrorMessage("Please enter a valid hourly rate.");
+      return;
+    }
+
+    if (deposit && Number(deposit) < 0) {
+      setErrorMessage("Deposit cannot be negative.");
+      return;
+    }
+
+    if (capacity && Number(capacity) <= 0) {
+      setErrorMessage("Capacity must be greater than zero.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage("");
 
-    const newStudio = {
+    const newStudio: NewStudio = {
       title: title.trim(),
       category,
-      location: location || "Dhaka, Bangladesh",
+      location: location.trim() || "Dhaka, Bangladesh",
       price: Number(price),
       deposit: deposit ? Number(deposit) : 0,
       capacity: capacity ? Number(capacity) : 10,
-      imageUrl:
-        imageUrl ||
+      image:
+        imageUrl.trim() ||
         "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
       amenities,
-      overview,
-      hostName: user?.name || "",
-      hostEmail: user?.email || "",
-      userId: user?.id || user?.email || "",
-      userEmail: user?.email || "",
-      rating: 5.0,
+      overview: overview.trim(),
+      rating: 0,
       reviewsCount: 0,
-      createdAt: new Date(),
     };
 
     try {
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-      const res = await fetch(`${apiUrl}/studios`, {
+      // JWT token is automatically attached by apiFetch.
+      // Backend gets user ID and email from the verified token.
+      await apiFetch("/studios", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(newStudio),
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.message || `Server returned ${res.status}`);
-      }
-
-      // Show confirmation only after successful database save
       setSuccess(true);
     } catch (err: unknown) {
       console.error("Failed to publish studio:", err);
@@ -229,7 +244,10 @@ export default function AddStudioPage() {
 
             {/* Title */}
             <div>
-              <Label htmlFor="title" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+              <Label
+                htmlFor="title"
+                className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+              >
                 Title
               </Label>
 
@@ -245,7 +263,10 @@ export default function AddStudioPage() {
             {/* Category & Location */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <Label htmlFor="category" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="category"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Category
                 </Label>
 
@@ -256,7 +277,11 @@ export default function AddStudioPage() {
                   className="mt-2 flex h-11 w-full rounded-xl border border-slate-200 bg-[#f4f5fa]/70 px-3 text-sm text-[#14142b] outline-none transition-colors focus:border-[#db1a6e] dark:border-slate-800 dark:bg-slate-800/80 dark:text-white"
                 >
                   {CATEGORIES.map((c) => (
-                    <option key={c} value={c} className="dark:bg-slate-900">
+                    <option
+                      key={c}
+                      value={c}
+                      className="dark:bg-slate-900"
+                    >
                       {c}
                     </option>
                   ))}
@@ -264,7 +289,10 @@ export default function AddStudioPage() {
               </div>
 
               <div>
-                <Label htmlFor="location" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="location"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Location
                 </Label>
 
@@ -281,7 +309,10 @@ export default function AddStudioPage() {
             {/* Hourly Rate & Security Deposit */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <Label htmlFor="price" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="price"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Hourly rate ($)
                 </Label>
 
@@ -297,7 +328,10 @@ export default function AddStudioPage() {
               </div>
 
               <div>
-                <Label htmlFor="deposit" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="deposit"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Security deposit ($)
                 </Label>
 
@@ -315,7 +349,10 @@ export default function AddStudioPage() {
             {/* Capacity & Image */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <Label htmlFor="capacity" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="capacity"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Max capacity
                 </Label>
 
@@ -330,7 +367,10 @@ export default function AddStudioPage() {
               </div>
 
               <div>
-                <Label htmlFor="imageUrl" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="imageUrl"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Image URL
                 </Label>
 
@@ -375,7 +415,10 @@ export default function AddStudioPage() {
 
             {/* Overview */}
             <div>
-              <Label htmlFor="overview" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+              <Label
+                htmlFor="overview"
+                className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+              >
                 Overview
               </Label>
 
@@ -392,7 +435,10 @@ export default function AddStudioPage() {
             {/* Host Information */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <Label htmlFor="hostName" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="hostName"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Host name
                 </Label>
 
@@ -405,7 +451,10 @@ export default function AddStudioPage() {
               </div>
 
               <div>
-                <Label htmlFor="hostEmail" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
+                <Label
+                  htmlFor="hostEmail"
+                  className="text-sm font-semibold text-[#14142b] dark:text-slate-200"
+                >
                   Host email
                 </Label>
 

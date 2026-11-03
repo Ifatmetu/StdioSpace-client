@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { useAuth } from "@/context/auth-context";
+import { apiFetch } from "@/lib/api";
 
 export interface MyStudio {
   id: string;
@@ -91,11 +92,8 @@ function toMyStudio(
 
   if (!title) return null;
 
-  const id =
-    getString(record, "id", "_id") || `${title}-${index}`;
-
   return {
-    id,
+    id: getString(record, "id", "_id") || `${title}-${index}`,
     title,
     category: getString(record, "category") || "Studio",
     location:
@@ -124,96 +122,35 @@ export function useMyListings() {
   React.useEffect(() => {
     if (isAuthLoading || !user) return;
 
-    const currentUser = user;
+    const currentEmail = user.email.trim().toLowerCase();
     const controller = new AbortController();
 
     async function loadListings() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(
-          /\/+$/,
-          ""
-        );
-
-        if (!apiUrl) {
-          throw new Error(
-            "API URL is not configured. Please set NEXT_PUBLIC_API_URL."
-          );
-        }
-
-        const email = currentUser.email.trim().toLowerCase();
-
-        if (!email) {
-          throw new Error("User email was not found.");
-        }
-
-        // Send logged-in user's email to the backend
-        const params = new URLSearchParams({
-          userEmail: email,
+        // JWT token is automatically attached by apiFetch.
+        // Backend identifies the logged-in user from the token.
+        const data = await apiFetch<unknown>("/studios", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
         });
 
-        const response = await fetch(
-          `${apiUrl}/studios?${params.toString()}`,
-          {
-            method: "GET",
-            cache: "no-store",
-            signal: controller.signal,
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Could not load studio listings (HTTP ${response.status}).`
-          );
-        }
-
-        const data: unknown = await response.json();
         const records = extractStudioRecords(data);
 
-        const userId =
-          typeof currentUser.id === "string"
-            ? currentUser.id
-            : "";
-
-        // Filter only the logged-in user's listings
         const ownListings = records
-          .filter((record) => {
-            const recordEmail = getString(
-              record,
-              "ownerEmail",
-              "hostEmail",
-              "userEmail",
-              "email"
-            ).toLowerCase();
-
-            const recordUserId = getString(
-              record,
-              "userId",
-              "ownerId"
-            );
-
-            const createdBy = getString(
-              record,
-              "createdBy"
-            ).toLowerCase();
-
-            return (
-              recordEmail === email ||
-              (Boolean(userId) && recordUserId === userId) ||
-              createdBy === email ||
-              (Boolean(userId) && createdBy === userId)
-            );
-          })
           .map((record, index) => toMyStudio(record, index))
           .filter(
             (studio): studio is MyStudio => studio !== null
           );
 
+        if (controller.signal.aborted) return;
+
         setResult({
-          email,
+          email: currentEmail,
           listings: ownListings,
           error: "",
         });
-      } catch (loadError) {
+      } catch (loadError: unknown) {
         if (controller.signal.aborted) return;
 
         console.error(
@@ -222,7 +159,7 @@ export function useMyListings() {
         );
 
         setResult({
-          email: currentUser.email.trim().toLowerCase(),
+          email: currentEmail,
           listings: [],
           error:
             loadError instanceof Error
