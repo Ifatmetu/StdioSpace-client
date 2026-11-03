@@ -1,6 +1,8 @@
+
 "use client";
 
 import * as React from "react";
+import { authClient } from "@/lib/auth-client";
 
 export interface User {
   name: string;
@@ -9,51 +11,85 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (name: string, email: string) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    image?: string
+  ) => Promise<void>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(
+  undefined
+);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+export function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { data: session, isPending } = authClient.useSession();
 
-  React.useEffect(() => {
-    try {
-      const stored = localStorage.getItem("studiospace_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
+  const user: User | null = session?.user
+    ? {
+        name: session.user.name,
+        email: session.user.email,
       }
-    } catch (e) {
-      console.error("Failed to load user from localStorage", e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    : null;
 
-  const login = (name: string, email: string) => {
-    const newUser = { name, email };
-    setUser(newUser);
-    try {
-      localStorage.setItem("studiospace_user", JSON.stringify(newUser));
-    } catch (e) {
-      console.error("Failed to save user in localStorage", e);
+  // Login
+  const login = async (email: string, password: string) => {
+    const { error } = await authClient.signIn.email({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    try {
-      localStorage.removeItem("studiospace_user");
-    } catch (e) {
-      console.error("Failed to remove user from localStorage", e);
+  // Register
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    image?: string
+  ) => {
+    const { error } = await authClient.signUp.email({
+      name,
+      email,
+      password,
+      ...(image ? { image } : {}),
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  };
+
+  // Logout
+  const logout = async () => {
+    const { error } = await authClient.signOut();
+
+    if (error) {
+      throw new Error(error.message);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        isLoading: isPending,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -61,8 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = React.useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
 }

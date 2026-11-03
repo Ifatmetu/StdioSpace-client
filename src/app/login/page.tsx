@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,37 +13,47 @@ import { useAuth } from "@/context/auth-context";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const requestedRedirect = searchParams.get("redirect");
   const redirectUrl = requestedRedirect || "/profile";
-  const { login, user } = useAuth();
+
+  const { login, user, isLoading } = useAuth();
 
   const [email, setEmail] = React.useState("rina@mail.com");
   const [password, setPassword] = React.useState("password123");
+  const [error, setError] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // If already logged in, redirect immediately
   React.useEffect(() => {
-    if (user) {
-      router.push(redirectUrl);
+    if (!isLoading && user) {
+      router.replace(redirectUrl);
     }
-  }, [user, redirectUrl, router]);
+  }, [user, isLoading, redirectUrl, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
-    const displayName = email.split("@")[0];
-    login(displayName, email);
-    router.push(redirectUrl);
-  };
 
-  const handleDemoHostLogin = () => {
-    login("Rina Ahmed", "rina@mail.com");
-    router.push(redirectUrl);
+    if (!email || !password) return;
+
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      await login(email, password);
+      router.push(redirectUrl);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="flex min-h-[calc(100vh-140px)] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 rounded-3xl border border-slate-200/90 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900">
-        
+
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Aperture className="size-8 text-[#db1a6e]" />
@@ -50,15 +61,15 @@ function LoginForm() {
               StudioSpace
             </span>
           </Link>
+
           <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white">
             Welcome back
           </h2>
+
           <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
             Log in to manage your spaces and take creator bookings.
           </p>
         </div>
-
-
 
         <div className="relative my-4 flex items-center justify-center">
           <div className="w-full border-t border-slate-200 dark:border-slate-800" />
@@ -68,12 +79,12 @@ function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
 
           <div>
             <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Email address
             </Label>
+
             <Input
               id="email"
               type="email"
@@ -89,10 +100,8 @@ function LoginForm() {
               <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Password
               </Label>
-              <a href="#" className="text-xs font-medium text-[#db1a6e] hover:underline">
-                Forgot password?
-              </a>
             </div>
+
             <Input
               id="password"
               type="password"
@@ -103,17 +112,27 @@ function LoginForm() {
             />
           </div>
 
+          {error && (
+            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
+              {error}
+            </p>
+          )}
+
           <Button
             type="submit"
-            className="h-11 w-full rounded-xl bg-slate-950 font-bold text-white transition-all hover:bg-slate-800 active:scale-98 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+            disabled={isSubmitting || isLoading}
+            className="h-11 w-full rounded-xl bg-slate-950 font-bold text-white transition-all hover:bg-slate-800 active:scale-98 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
-            Sign in
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
         </form>
 
         <p className="text-center text-xs text-slate-500">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-semibold text-[#db1a6e] hover:underline">
+          <Link
+            href="/register"
+            className="font-semibold text-[#db1a6e] hover:underline"
+          >
             Register now
           </Link>
         </p>
@@ -125,7 +144,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <React.Suspense fallback={<div className="p-12 text-center text-sm text-slate-500">Loading...</div>}>
+    <React.Suspense
+      fallback={
+        <div className="p-12 text-center text-sm text-slate-500">
+          Loading...
+        </div>
+      }
+    >
       <LoginForm />
     </React.Suspense>
   );

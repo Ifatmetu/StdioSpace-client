@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,8 @@ import { useAuth } from "@/context/auth-context";
 
 export default function Register() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { register } = useAuth();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,6 +29,8 @@ export default function Register() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,32 +45,18 @@ export default function Register() {
     e.preventDefault();
 
     setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
+      await register(
+        formData.name,
+        formData.email,
+        formData.password
       );
 
-      const data = await response.json();
+      setSuccess("Registration successful!");
 
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-
-      login(formData.name || formData.email.split("@")[0], formData.email);
-
-      alert("Registration successful!");
-
-      console.log("Registered User:", data);
-
-      // Reset form
       setFormData({
         name: "",
         email: "",
@@ -75,16 +65,12 @@ export default function Register() {
       });
 
       router.push("/profile");
-
-    } catch (error) {
-      console.error("Registration Error:", error);
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong"
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again."
       );
-
     } finally {
       setLoading(false);
     }
@@ -107,7 +93,6 @@ export default function Register() {
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-5">
 
-            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
 
@@ -121,7 +106,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
 
@@ -136,7 +120,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
 
@@ -147,14 +130,15 @@ export default function Register() {
                 placeholder="Create a password"
                 value={formData.password}
                 onChange={handleChange}
-                minLength={8}
+                minLength={6}
                 required
               />
+              <p className="text-xs text-gray-500">
+                Password must contain at least 6 characters.
+              </p>
             </div>
 
-            {/* Existing Studio */}
             <div className="flex items-center space-x-3">
-
               <Checkbox
                 id="existingStudio"
                 checked={formData.existingStudio}
@@ -172,10 +156,20 @@ export default function Register() {
               >
                 I already own a studio
               </Label>
-
             </div>
 
-            {/* Register Button */}
+            {error && (
+              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </p>
+            )}
+
+            {success && (
+              <p className="rounded-lg bg-green-50 p-3 text-sm text-green-600">
+                {success}
+              </p>
+            )}
+
             <Button
               type="submit"
               className="w-full"
@@ -186,13 +180,12 @@ export default function Register() {
 
             <p className="text-center text-sm text-gray-500">
               Already have an account?{" "}
-
-              <a
+              <Link
                 href="/login"
                 className="font-semibold text-primary hover:underline"
               >
                 Login
-              </a>
+              </Link>
             </p>
 
           </form>
