@@ -4,14 +4,17 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Heart, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { STUDIOS, Studio } from "@/data/dummy-data";
+import { StudioDetailsDialog } from "@/components/studios/studio-details-dialog";
+import type { Studio } from "@/data/studio-catalog";
+import { useStudios } from "@/hooks/use-studios";
 
 export function FeaturedStudios() {
-  const [savedIds, setSavedIds] = React.useState<Set<number>>(new Set());
+  const { studios, isLoading, error } = useStudios();
+  const [savedIds, setSavedIds] = React.useState<Set<Studio["id"]>>(new Set());
+  const [selectedStudio, setSelectedStudio] = React.useState<Studio | null>(null);
 
-  const toggleSave = (id: number, e: React.MouseEvent) => {
+  const toggleSave = (id: Studio["id"], e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setSavedIds((prev) => {
@@ -44,7 +47,7 @@ export function FeaturedStudios() {
           </div>
           <Link href="/studios">
             <Button variant="outline" className="rounded-xl border-slate-300 font-semibold dark:border-slate-700">
-              View all 50+ studios
+              View all studios
               <ArrowRight className="ml-1 size-4" />
             </Button>
           </Link>
@@ -52,17 +55,35 @@ export function FeaturedStudios() {
 
         {/* Studio Cards Grid */}
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {STUDIOS.map((studio: Studio) => {
-            const isSaved = savedIds.has(studio.id);
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-80 animate-pulse rounded-2xl bg-slate-200/80 dark:bg-slate-800"
+              />
+            ))
+          ) : error ? (
+            <p className="col-span-full rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+              {error}
+            </p>
+          ) : studios.length === 0 ? (
+            <p className="col-span-full py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              No studios are available yet.
+            </p>
+          ) : (
+            studios.slice(0, 6).map((studio) => {
+              const isSaved = savedIds.has(studio.id);
 
-            return (
-              <Card
-                key={studio.id}
-                className="group overflow-hidden rounded-2xl border border-slate-200/90 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
-              >
+              return (
+                <Card
+                  key={studio.id}
+                  onClick={() => setSelectedStudio(studio)}
+                  className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
+                >
                 {/* Visual Thumbnail */}
                 <div
-                  className={`relative h-48 w-full overflow-hidden bg-gradient-to-br ${studio.gradient} p-4 transition-transform duration-300 group-hover:scale-102`}
+                  className={`relative h-48 w-full overflow-hidden bg-gradient-to-br ${studio.gradient} bg-cover bg-center p-4 transition-transform duration-300 group-hover:scale-102`}
+                  style={studio.image ? { backgroundImage: `url("${studio.image}")` } : undefined}
                 >
                   {/* Decorative background shapes */}
                   <div className="absolute -bottom-8 -left-8 size-32 rounded-full bg-white/20 blur-md" />
@@ -134,23 +155,32 @@ export function FeaturedStudios() {
                       <span className="text-xs text-slate-500"> / hour</span>
                     </div>
 
-                    <Link href={`/studios/${studio.id}`}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl border-slate-200 font-semibold hover:border-[#db1a6e] hover:text-[#db1a6e] dark:border-slate-700"
-                      >
-                        View Details
-                      </Button>
-                    </Link>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedStudio(studio);
+                      }}
+                      className="rounded-xl border-slate-200 font-semibold hover:border-[#db1a6e] hover:text-[#db1a6e] dark:border-slate-700"
+                    >
+                      View Details
+                    </Button>
                   </div>
                 </CardContent>
-              </Card>
-            );
-          })}
+                </Card>
+              );
+            })
+          )}
         </div>
 
       </div>
+      <StudioDetailsDialog
+        key={selectedStudio?.id ?? "closed"}
+        studio={selectedStudio}
+        onClose={() => setSelectedStudio(null)}
+      />
     </section>
   );
 }

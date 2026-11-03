@@ -1,8 +1,15 @@
+
 "use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Sparkles,
+  Plus,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,11 +35,17 @@ const AVAILABLE_AMENITIES = [
   "Mixing console",
 ];
 
+const INITIAL_AMENITIES = [
+  "Wi-Fi",
+  "Cyc wall",
+  "Lighting kit",
+  "Parking",
+];
+
 export default function AddStudioPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
 
-  // Redirect to login if user is not authenticated
   React.useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login?redirect=/add-studio");
@@ -46,28 +59,46 @@ export default function AddStudioPage() {
   const [deposit, setDeposit] = React.useState("");
   const [capacity, setCapacity] = React.useState("");
   const [imageUrl, setImageUrl] = React.useState("");
-  const [amenities, setAmenities] = React.useState<string[]>([
-    "Wi-Fi",
-    "Cyc wall",
-    "Lighting kit",
-    "Parking",
-  ]);
+  const [amenities, setAmenities] = React.useState<string[]>(INITIAL_AMENITIES);
   const [overview, setOverview] = React.useState("");
 
   const [submitting, setSubmitting] = React.useState(false);
   const [success, setSuccess] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
+  // Reset form for adding another studio
+  const resetForm = () => {
+    setTitle("");
+    setCategory("Photo Studio");
+    setLocation("");
+    setPrice("");
+    setDeposit("");
+    setCapacity("");
+    setImageUrl("");
+    setAmenities(INITIAL_AMENITIES);
+    setOverview("");
+
+    setSuccess(false);
+    setErrorMessage("");
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const toggleAmenity = (item: string) => {
     setAmenities((prev) =>
-      prev.includes(item) ? prev.filter((a) => a !== item) : [...prev, item]
+      prev.includes(item)
+        ? prev.filter((a) => a !== item)
+        : [...prev, item]
     );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !price) {
-      setErrorMessage("Please enter at least a studio title and hourly rate.");
+
+    if (!title.trim() || !price) {
+      setErrorMessage(
+        "Please enter at least a studio title and hourly rate."
+      );
       return;
     }
 
@@ -75,24 +106,31 @@ export default function AddStudioPage() {
     setErrorMessage("");
 
     const newStudio = {
-      title,
+      title: title.trim(),
       category,
       location: location || "Dhaka, Bangladesh",
       price: Number(price),
       deposit: deposit ? Number(deposit) : 0,
       capacity: capacity ? Number(capacity) : 10,
-      imageUrl: imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
+      imageUrl:
+        imageUrl ||
+        "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
       amenities,
       overview,
-      hostName: user?.name || "Rina Ahmed",
-      hostEmail: user?.email || "rina@mail.com",
+      hostName: user?.name || "",
+      hostEmail: user?.email || "",
+      userId: user?.id || user?.email || "",
+      userEmail: user?.email || "",
       rating: 5.0,
       reviewsCount: 0,
       createdAt: new Date(),
     };
 
     try {
-      const res = await fetch("http://localhost:5000/studios", {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+      const res = await fetch(`${apiUrl}/studios`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -100,21 +138,22 @@ export default function AddStudioPage() {
         body: JSON.stringify(newStudio),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
+        throw new Error(data.message || `Server returned ${res.status}`);
       }
 
+      // Show confirmation only after successful database save
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/studios");
-      }, 2500);
     } catch (err: unknown) {
-      console.error("Failed to post studio to server:", err);
-      // Even if server is offline or fails, show graceful confirmation
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/studios");
-      }, 2500);
+      console.error("Failed to publish studio:", err);
+
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to publish studio. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -129,37 +168,71 @@ export default function AddStudioPage() {
   }
 
   return (
-    <div className="bg-[#f4f5fa] py-12 px-4 sm:px-6 lg:px-8 dark:bg-slate-950">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200/90 bg-white p-8 sm:p-12 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        
+    <div className="bg-[#f4f5fa] px-4 py-12 sm:px-6 lg:px-8 dark:bg-slate-950">
+      <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200/90 bg-white p-8 shadow-sm sm:p-12 dark:border-slate-800 dark:bg-slate-900">
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#14142b] dark:text-white">
             Add a new studio
           </h1>
+
           <p className="mt-1 text-sm text-[#5d5f7a] dark:text-slate-400">
             Tell creators what they are booking.
           </p>
         </div>
 
         {success ? (
+          /* Success Confirmation */
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center dark:border-emerald-900/50 dark:bg-emerald-950/30">
+
             <CheckCircle2 className="mx-auto size-12 text-emerald-600 dark:text-emerald-400" />
+
             <h3 className="mt-3 text-xl font-bold text-emerald-900 dark:text-emerald-100">
               Studio Published Successfully!
             </h3>
-            <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
-              Your space has been added to MongoDB and is now ready for creators to book. Redirecting...
+
+            <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
+              Your studio has been successfully saved. Creators can now discover your space.
             </p>
+
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+
+              <Button
+                onClick={resetForm}
+                className="rounded-xl bg-[#db1a6e] px-6 text-white hover:bg-[#c2135f]"
+              >
+                <Plus className="mr-2 size-4" />
+                Add Another Studio
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push("/studios")}
+                className="rounded-xl"
+              >
+                Explore Studios
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push("/profile")}
+                className="rounded-xl"
+              >
+                My Profile
+              </Button>
+
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            
+
             {/* Title */}
             <div>
               <Label htmlFor="title" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                 Title
               </Label>
+
               <Input
                 id="title"
                 value={title}
@@ -175,6 +248,7 @@ export default function AddStudioPage() {
                 <Label htmlFor="category" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Category
                 </Label>
+
                 <select
                   id="category"
                   value={category}
@@ -193,6 +267,7 @@ export default function AddStudioPage() {
                 <Label htmlFor="location" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Location
                 </Label>
+
                 <Input
                   id="location"
                   value={location}
@@ -209,6 +284,7 @@ export default function AddStudioPage() {
                 <Label htmlFor="price" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Hourly rate ($)
                 </Label>
+
                 <Input
                   id="price"
                   type="number"
@@ -224,6 +300,7 @@ export default function AddStudioPage() {
                 <Label htmlFor="deposit" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Security deposit ($)
                 </Label>
+
                 <Input
                   id="deposit"
                   type="number"
@@ -235,12 +312,13 @@ export default function AddStudioPage() {
               </div>
             </div>
 
-            {/* Max Capacity & Image URL */}
+            {/* Capacity & Image */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
                 <Label htmlFor="capacity" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Max capacity
                 </Label>
+
                 <Input
                   id="capacity"
                   type="number"
@@ -255,6 +333,7 @@ export default function AddStudioPage() {
                 <Label htmlFor="imageUrl" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Image URL
                 </Label>
+
                 <Input
                   id="imageUrl"
                   type="url"
@@ -266,14 +345,16 @@ export default function AddStudioPage() {
               </div>
             </div>
 
-            {/* Amenities Pills */}
+            {/* Amenities */}
             <div>
               <Label className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                 Amenities
               </Label>
+
               <div className="mt-2.5 flex flex-wrap gap-2.5">
                 {AVAILABLE_AMENITIES.map((item) => {
                   const isSelected = amenities.includes(item);
+
                   return (
                     <button
                       key={item}
@@ -281,7 +362,7 @@ export default function AddStudioPage() {
                       onClick={() => toggleAmenity(item)}
                       className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
                         isSelected
-                          ? "border border-[#db1a6e] bg-[#db1a6e]/10 text-[#db1a6e] font-semibold"
+                          ? "border border-[#db1a6e] bg-[#db1a6e]/10 font-semibold text-[#db1a6e]"
                           : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                       }`}
                     >
@@ -297,6 +378,7 @@ export default function AddStudioPage() {
               <Label htmlFor="overview" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                 Overview
               </Label>
+
               <Textarea
                 id="overview"
                 rows={4}
@@ -307,15 +389,16 @@ export default function AddStudioPage() {
               />
             </div>
 
-            {/* Host Name & Email (Readonly) */}
+            {/* Host Information */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
                 <Label htmlFor="hostName" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Host name
                 </Label>
+
                 <Input
                   id="hostName"
-                  value={user?.name || "Rina Ahmed"}
+                  value={user.name || ""}
                   readOnly
                   className="mt-2 h-11 cursor-not-allowed rounded-xl border-slate-200 bg-slate-100/90 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
                 />
@@ -325,20 +408,24 @@ export default function AddStudioPage() {
                 <Label htmlFor="hostEmail" className="text-sm font-semibold text-[#14142b] dark:text-slate-200">
                   Host email
                 </Label>
+
                 <Input
                   id="hostEmail"
-                  value={user?.email || "rina@mail.com"}
+                  value={user.email || ""}
                   readOnly
                   className="mt-2 h-11 cursor-not-allowed rounded-xl border-slate-200 bg-slate-100/90 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
                 />
               </div>
             </div>
 
+            {/* Error */}
             {errorMessage && (
-              <p className="text-xs font-semibold text-rose-500">{errorMessage}</p>
+              <p className="rounded-lg bg-rose-50 p-3 text-xs font-semibold text-rose-500">
+                {errorMessage}
+              </p>
             )}
 
-            {/* Submit Button */}
+            {/* Submit */}
             <div className="pt-2">
               <Button
                 type="submit"
@@ -351,14 +438,16 @@ export default function AddStudioPage() {
                     Adding studio...
                   </>
                 ) : (
-                  "Add studio"
+                  <>
+                    <Sparkles className="mr-2 size-4" />
+                    Add studio
+                  </>
                 )}
               </Button>
             </div>
 
           </form>
         )}
-
       </div>
     </div>
   );

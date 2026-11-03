@@ -13,25 +13,28 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Commands
 - `npm install` — npm with `package-lock.json`; Next 16 requires Node 20.9+.
 - `npm run dev` / `npm run build` — Turbopack is the default in Next 16; do **not** add `--turbopack`.
-- `npm run lint` — plain ESLint CLI (there is no `next lint`). Baseline is already red with exit code 1: 4 `react-hooks/set-state-in-effect` errors (`theme-toggle.tsx`, `ui/carousel.tsx`, `context/auth-context.tsx`, `hooks/use-mobile.ts`) and 2 unused-import warnings (`Sparkles` in `add-studio/page.tsx`, `Badge` in `home/featured-studios.tsx`). Don't assume a clean run.
+- `npm run lint` — plain ESLint CLI (there is no `next lint`). Baseline is already red with exit code 1: 4 `react-hooks/set-state-in-effect` errors (`theme-toggle.tsx`, `ui/carousel.tsx`, `context/auth-context.tsx`, `hooks/use-mobile.ts`) and 4 unused-import/variable warnings (`Sparkles` in `add-studio/page.tsx`; `Sparkles`, `UserCheck`, and `handleDemoHostLogin` in `login/page.tsx`). Don't assume a clean run.
 - `npx tsc --noEmit` — typecheck (passes; no `typecheck` script).
+- `npm run build` — currently fails prerendering `/` because `new Date()` runs in the client component `src/components/studios/studio-details-dialog.tsx` (`blocking-prerender-current-time-client`). See the Cache Components note below before assuming your change broke it.
 - No test runner, CI workflow, or pre-commit hook exists; don't go looking for one.
 
 ## Layout and routes
-- Real App Router routes: `/` (home), `/add-studio` (host form), `/login`, and `/host` (redirects to `/add-studio`).
-- Navbar/Footer link to `/studios`, `/how-it-works`, `/about`, `/register`, `/my-listings`, `/terms`, `/privacy`, `/security` — these routes do **not** exist yet and 404. Don't treat them as regressions.
+- Implemented routes: `/` (home), `/studios` (explore/filter listing), `/add-studio` (host form), `/login`, and `/host` (redirects to `/add-studio`). Studio cards open `StudioDetailsDialog`; there is no studio detail route.
+- Links to `/about`, `/register`, `/my-listings`, `/terms`, `/privacy`, and `/security` 404 — those pages do **not** exist yet. "How It Works" points at the real `/#how-it-works` anchor (`id` in `components/home/how-booking-works.tsx`). Don't treat missing pages as regressions.
+- `/studios` reads `?category=<key>` from the URL; category pills use `router.replace`, so the category is URL-driven while search/price/capacity/sort/saved state and the details dialog live in local state. The page wraps the client explorer in `<Suspense>` because it uses `useSearchParams`.
 - `src/app/layout.tsx` always renders `Navbar`, `Footer`, and `AuthProvider` around every page; pages render inside its `<main>`.
 - `@/*` → `src/*` (alias in `tsconfig.json`, also assumed by `components.json`).
 
 ## Data, auth, and API
 - `src/data/dummy-data.ts` is the only catalog (`STUDIOS`, `CATEGORIES`, `BOOKING_STEPS`, `GUARANTEES`); home components render it directly. There is no data-fetching layer.
-- Auth is a client-only mock in `src/context/auth-context.tsx`: persisted in `localStorage` as `studiospace_user`, password is never checked. `useAuth()` must be under `AuthProvider`, which the root layout provides.
-- `add-studio` POSTs to a hard-coded `http://localhost:5000/studios` backend that is not in this repo. On fetch failure it still shows success and redirects to the missing `/studios` route — demo behavior, not a bug to fix incidentally.
+- Auth is a client-only mock in `src/context/auth-context.tsx`: persisted in `localStorage` as `studiospace_user`, password is never checked. `useAuth()` must be under `AuthProvider`, which the root layout provides. `add-studio` redirects unauthenticated users to `/login?redirect=/add-studio`.
+- `add-studio` POSTs to a hard-coded `http://localhost:5000/studios` backend that is not in this repo. On fetch failure it still shows success and redirects to `/studios` — demo behavior, not a bug to fix incidentally.
 - Theme state is client-only: `theme-toggle.tsx` writes `theme` to `localStorage` and toggles `.dark` on `<html>`. There is no blocking theme script, so a flash of light theme on load is expected. Dark mode is class-based (`@custom-variant dark` in `globals.css`).
 
 ## Next.js 16 behavior configured here
 `next.config.ts` sets `cacheComponents: true` + `partialPrefetching: true`, which changes rendering semantics:
 - PPR/static shell is the only rendering model and data is uncached unless opted in. Wrap `cookies()`, `headers()`, `searchParams`, or other uncached fetches in `<Suspense>` with a fallback, or cache with `use cache` / `cacheLife` / `cacheTag` (cached functions must be async). Without a boundary, dev/build surfaces a blocking-route error.
+- Unstable values read during client render are rejected at prerender time too (e.g. `new Date()` in `studio-details-dialog.tsx`); defer them to an effect/event handler or add a `<Suspense>` boundary.
 - Do not add the removed `experimental.ppr` flag, the `experimental_ppr` segment config, or `runtime` exports (Cache Components is Node-only).
 - `params` and `searchParams` are Promises — await them.
 - `LayoutProps<"/">` and `PageProps<...>` are globals generated into `.next/types` by Next. Don't replace them with hand-written prop types.

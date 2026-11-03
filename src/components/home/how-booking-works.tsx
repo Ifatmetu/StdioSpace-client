@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Calendar, CheckCircle2, Film, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BOOKING_STEPS } from "@/data/dummy-data";
+import { BOOKING_STEPS } from "@/data/studio-catalog";
 
 export function HowBookingWorks() {
   const getStepIcon = (index: number) => {
@@ -23,7 +23,7 @@ export function HowBookingWorks() {
   };
 
   return (
-    <section className="py-16 sm:py-24">
+    <section id="how-it-works" className="scroll-mt-20 py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}

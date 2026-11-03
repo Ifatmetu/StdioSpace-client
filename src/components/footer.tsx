@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Aperture } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CATEGORIES } from "@/data/dummy-data";
+import { CATEGORIES } from "@/data/studio-catalog";
 
 export function Footer() {
   const [email, setEmail] = React.useState("");
@@ -64,7 +64,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/how-it-works"
+                  href="/#how-it-works"
                   className="text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
                 >
                   How It Works

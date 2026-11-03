@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Headphones, ShieldCheck, UserCheck, Wrench } from "lucide-react";
-import { GUARANTEES } from "@/data/dummy-data";
+import { GUARANTEES } from "@/data/studio-catalog";
 
 export function HostGuarantee() {
   const getGuaranteeIcon = (name: string) => {

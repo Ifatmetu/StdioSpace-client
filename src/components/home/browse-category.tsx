@@ -3,9 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { Camera, Mic, Music, Palette, Video, ArrowUpRight } from "lucide-react";
-import { CATEGORIES, Category } from "@/data/dummy-data";
+import { CATEGORIES, type Category } from "@/data/studio-catalog";
+import { useStudios } from "@/hooks/use-studios";
 
 export function BrowseCategory() {
+  const { studios } = useStudios();
+
   const getIcon = (key: Category["key"]) => {
     switch (key) {
       case "photo":
@@ -77,7 +80,7 @@ export function BrowseCategory() {
               <div className="relative z-10">
                 <h3 className="text-xl font-bold tracking-tight">{cat.name}</h3>
                 <p className="mt-0.5 text-xs font-medium text-white/85">
-                  {cat.count} spaces ready
+                  {studios.filter((studio) => studio.categoryKey === cat.key).length} spaces ready
                 </p>
               </div>
             </Link>

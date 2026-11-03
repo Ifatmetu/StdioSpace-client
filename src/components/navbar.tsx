@@ -18,7 +18,7 @@ import { useAuth } from "@/context/auth-context";
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
   { label: "Explore Studios", href: "/studios" },
-  { label: "How It Works", href: "/how-it-works" },
+  { label: "How It Works", href: "/#how-it-works" },
   { label: "About Us", href: "/about" },
 ];
 
@@ -86,6 +86,13 @@ export function Navbar() {
                     <p className="text-xs text-slate-500">{user.email}</p>
                   </div>
                   <div className="py-1">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      <UserIcon className="size-4 text-[#db1a6e]" />
+                      Profile
+                    </Link>
                     <Link
                       href="/add-studio"
                       className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -183,6 +190,16 @@ export function Navbar() {
                           <div className="text-xs text-slate-500">{user.email}</div>
                         </div>
                       </div>
+                      <Link href="/profile" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800">
+                          Profile
+                        </Button>
+                      </Link>
+                      <Link href="/my-listings" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800">
+                          My Listings
+                        </Button>
+                      </Link>
                       <Link href="/add-studio" onClick={() => setIsOpen(false)}>
                         <Button className="h-10 w-full rounded-xl bg-[#db1a6e] text-sm font-semibold text-white hover:bg-[#c2135f]">
                           Add New Studio

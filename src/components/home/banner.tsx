@@ -5,32 +5,37 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { STUDIOS } from "@/data/dummy-data";
 import { useAuth } from "@/context/auth-context";
+import { useStudios } from "@/hooks/use-studios";
 
 export function Banner() {
   const router = useRouter();
   const { user } = useAuth();
+  const { studios, isLoading, error } = useStudios();
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [isPlaying, setIsPlaying] = React.useState(true);
 
   // Auto-play rotation for the featured spotlight
   React.useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || studios.length < 2) return;
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % STUDIOS.length);
+      setActiveIndex((prev) => (prev + 1) % studios.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, [isPlaying]);
+  }, [isPlaying, studios.length]);
 
-  const activeStudio = STUDIOS[activeIndex];
+  const activeStudio = studios.length ? studios[activeIndex % studios.length] : null;
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + STUDIOS.length) % STUDIOS.length);
+    if (studios.length > 1) {
+      setActiveIndex((prev) => (prev - 1 + studios.length) % studios.length);
+    }
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % STUDIOS.length);
+    if (studios.length > 1) {
+      setActiveIndex((prev) => (prev + 1) % studios.length);
+    }
   };
 
   const handleHostClick = () => {
@@ -86,11 +91,17 @@ export function Banner() {
             {/* Quick stats counter */}
             <div className="mt-12 grid grid-cols-3 gap-4 border-t border-slate-200 pt-8 sm:gap-8 dark:border-slate-800">
               <div>
-                <div className="text-2xl font-bold text-slate-950 sm:text-3xl dark:text-white">50+</div>
+                <div className="text-2xl font-bold text-slate-950 sm:text-3xl dark:text-white">
+                  {isLoading ? "…" : studios.length}
+                </div>
                 <div className="text-xs text-slate-500 sm:text-sm">Verified Studios</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-slate-950 sm:text-3xl dark:text-white">$25</div>
+                <div className="text-2xl font-bold text-slate-950 sm:text-3xl dark:text-white">
+                  {isLoading || studios.length === 0
+                    ? "—"
+                    : `$${Math.min(...studios.map((studio) => studio.price))}`}
+                </div>
                 <div className="text-xs text-slate-500 sm:text-sm">Starting / Hour</div>
               </div>
               <div>
@@ -105,90 +116,115 @@ export function Banner() {
             <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900">
               
               {/* Studio Visual Canvas Card */}
-              <div
-                className={`relative flex h-64 flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br ${activeStudio.gradient} p-6 text-white shadow-inner transition-all duration-500`}
-              >
-                <div className="absolute -bottom-16 -right-16 size-48 rounded-full bg-white/20 blur-xl" />
-                <div className="absolute -top-12 -left-12 size-36 rounded-full bg-white/15 blur-lg" />
-
-                <div className="relative z-10 flex items-start justify-between">
-                  <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-semibold backdrop-blur-md">
-                    {activeStudio.category}
-                  </span>
-                  <div className="flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-slate-950">
-                    <Star className="size-3.5 fill-amber-400 text-amber-400" />
-                    <span>{activeStudio.rating}</span>
-                  </div>
-                </div>
-
-                <div className="relative z-10">
-                  <h3 className="text-2xl font-extrabold tracking-tight">{activeStudio.title}</h3>
-                  <p className="mt-1 text-sm font-medium text-white/90">{activeStudio.location}</p>
-                  <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-2xl font-black">${activeStudio.price}</span>
-                    <span className="text-xs text-white/80">/ hour</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card Meta & Controls */}
-              <div className="mt-5 space-y-4">
-                <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
-                  {activeStudio.overview}
-                </p>
-
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-1.5">
-                    {STUDIOS.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setActiveIndex(i)}
-                        className={`h-2 rounded-full transition-all ${
-                          i === activeIndex
-                            ? "w-7 bg-[#db1a6e]"
-                            : "w-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700"
-                        }`}
-                        aria-label={`Go to slide ${i + 1}`}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="size-8 rounded-full border-slate-200 dark:border-slate-700"
-                      aria-label={isPlaying ? "Pause autoplay" : "Start autoplay"}
+              {activeStudio ? (
+                  <div>
+                    <div
+                      className={`relative flex h-64 flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br ${activeStudio.gradient} bg-cover bg-center p-6 text-white shadow-inner transition-all duration-500`}
+                      style={
+                        activeStudio.image
+                          ? { backgroundImage: `url("${activeStudio.image}")` }
+                          : undefined
+                      }
                     >
-                      {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handlePrev}
-                      className="size-8 rounded-full border-slate-200 dark:border-slate-700"
-                      aria-label="Previous studio"
-                    >
-                      <ChevronLeft className="size-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleNext}
-                      className="size-8 rounded-full border-slate-200 dark:border-slate-700"
-                      aria-label="Next studio"
-                    >
-                      <ChevronRight className="size-4" />
-                    </Button>
+                      <div className="absolute -bottom-16 -right-16 size-48 rounded-full bg-white/20 blur-xl" />
+                      <div className="absolute -top-12 -left-12 size-36 rounded-full bg-white/15 blur-lg" />
+
+                      <div className="relative z-10 flex items-start justify-between">
+                        <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-semibold backdrop-blur-md">
+                          {activeStudio.category}
+                        </span>
+                        <div className="flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-slate-950">
+                          <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                          <span>{activeStudio.rating}</span>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10">
+                        <h3 className="text-2xl font-extrabold tracking-tight">
+                          {activeStudio.title}
+                        </h3>
+                        <p className="mt-1 text-sm font-medium text-white/90">
+                          {activeStudio.location}
+                        </p>
+                        <div className="mt-3 flex items-baseline gap-1">
+                          <span className="text-2xl font-black">${activeStudio.price}</span>
+                          <span className="text-xs text-white/80">/ hour</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Meta & Controls */}
+                    <div className="mt-5 space-y-4">
+                      <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+                        {activeStudio.overview}
+                      </p>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-1.5">
+                          {studios.map((studio, i) => (
+                            <button
+                              key={studio.id}
+                              onClick={() => setActiveIndex(i)}
+                              className={`h-2 rounded-full transition-all ${
+                                i === activeIndex % studios.length
+                                  ? "w-7 bg-[#db1a6e]"
+                                  : "w-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700"
+                              }`}
+                              aria-label={`Go to slide ${i + 1}`}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            disabled={studios.length < 2}
+                            className="size-8 rounded-full border-slate-200 dark:border-slate-700"
+                            aria-label={isPlaying ? "Pause autoplay" : "Start autoplay"}
+                          >
+                            {isPlaying ? (
+                              <Pause className="size-3.5" />
+                            ) : (
+                              <Play className="size-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handlePrev}
+                            disabled={studios.length < 2}
+                            className="size-8 rounded-full border-slate-200 dark:border-slate-700"
+                            aria-label="Previous studio"
+                          >
+                            <ChevronLeft className="size-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleNext}
+                            disabled={studios.length < 2}
+                            className="size-8 rounded-full border-slate-200 dark:border-slate-700"
+                            aria-label="Next studio"
+                          >
+                            <ChevronRight className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex min-h-[22rem] items-center justify-center rounded-2xl bg-slate-100 p-6 text-center dark:bg-slate-800">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      {isLoading ? "Loading studios..." : error || "No studios are available yet."}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-
         </div>
-      </div>
-    </section>
+      </section>
   );
 }
