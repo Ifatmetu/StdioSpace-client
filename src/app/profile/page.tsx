@@ -10,17 +10,17 @@ import {
   Building2,
   CalendarDays,
   ArrowRight,
+  MapPin,
+  ChevronDown,
   Settings,
   Loader2,
-  MapPin,
+  ClipboardList,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 
 import { useAuth } from "@/context/auth-context";
@@ -38,12 +38,24 @@ interface Studio {
   location?: string;
 }
 
+type SectionName = "account" | "listings" | "bookings";
+
 export default function ProfilePage() {
   const { user } = useAuth();
+
   const { bookings, isLoading: bookingsLoading } = useMyBookings();
 
   const [studios, setStudios] = useState<Studio[]>([]);
   const [studiosLoading, setStudiosLoading] = useState(true);
+
+  const [openSection, setOpenSection] =
+    useState<SectionName | null>("account");
+
+  const toggleSection = (section: SectionName) => {
+    setOpenSection((current) =>
+      current === section ? null : section
+    );
+  };
 
   useEffect(() => {
     const fetchStudios = async () => {
@@ -60,7 +72,9 @@ export default function ProfilePage() {
         const data = await response.json();
 
         if (response.ok) {
-          setStudios(Array.isArray(data) ? data : data.studios || []);
+          setStudios(
+            Array.isArray(data) ? data : data.studios || []
+          );
         }
       } catch (error) {
         console.error("Failed to fetch studios:", error);
@@ -72,232 +86,330 @@ export default function ProfilePage() {
     fetchStudios();
   }, [user?.email]);
 
+  const SectionHeader = ({
+    title,
+    icon,
+    section,
+    description,
+  }: {
+    title: string;
+    icon: React.ReactNode;
+    section: SectionName;
+    description: string;
+  }) => (
+    <button
+      type="button"
+      onClick={() => toggleSection(section)}
+      className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-gray-50 transition"
+      aria-expanded={openSection === section}
+    >
+      <div className="flex items-center gap-4">
+        <div className="h-11 w-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+          {icon}
+        </div>
+
+        <div>
+          <h2 className="font-semibold text-gray-900">
+            {title}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {description}
+          </p>
+        </div>
+      </div>
+
+      <ChevronDown
+        className={`h-5 w-5 text-gray-500 shrink-0 transition-transform duration-200 ${
+          openSection === section ? "rotate-180" : ""
+        }`}
+      />
+    </button>
+  );
+
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="p-8 text-center max-w-md w-full">
-          <CardContent>
-            <User className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <h2 className="text-xl font-semibold mb-2">
+      <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <User className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+
+            <h2 className="text-xl font-semibold">
               Please Login
             </h2>
-            <p className="text-gray-500 mb-5">
+
+            <p className="text-gray-500 mt-2 mb-5">
               You need to login to view your profile.
             </p>
-            <Button asChild>
-              <Link href="/login">Login</Link>
-            </Button>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center rounded-md bg-purple-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-purple-700 transition"
+            >
+              Login
+            </Link>
           </CardContent>
         </Card>
-      </div>
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <main className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-3xl mx-auto">
 
-        {/* Profile Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            My Profile
-          </h1>
-          <p className="text-gray-500 mt-2">
-            Manage your account, listings and bookings.
+        {/* Profile Heading */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center">
+              <User className="h-8 w-8 text-purple-600" />
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {user.name || "My Profile"}
+              </h1>
+
+              <p className="text-gray-500 text-sm mt-1">
+                {user.email}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-gray-500 mt-5">
+            Manage your account and activities.
           </p>
         </div>
 
-        {/* Account Information */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-purple-600" />
-              Account Information
-            </CardTitle>
-          </CardHeader>
+        {/* Dropdown Sections */}
+        <Card className="border border-gray-200 shadow-sm divide-y overflow-hidden">
 
-          <CardContent>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="h-20 w-20 rounded-full bg-purple-100 flex items-center justify-center">
-                <User className="h-9 w-9 text-purple-600" />
-              </div>
+          {/* Account Information */}
+          <div>
+            <SectionHeader
+              title="Account Information"
+              description="View your personal information"
+              section="account"
+              icon={<User className="h-5 w-5" />}
+            />
 
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {user.name || "User"}
-                </h2>
-
-                <p className="flex items-center gap-2 text-gray-500">
-                  <Mail className="h-4 w-4" />
-                  {user.email}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* My Listings */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-purple-600" />
-              My Listings
-            </CardTitle>
-
-            <Button asChild variant="outline" size="sm">
-              <Link href="/create-studio">
-                Add Studio
-              </Link>
-            </Button>
-          </CardHeader>
-
-          <CardContent>
-            {studiosLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-              </div>
-            ) : studios.length === 0 ? (
-              <div className="text-center py-8">
-                <Building2 className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-500">
-                  You haven't listed any studios yet.
-                </p>
-                <Button asChild className="mt-4">
-                  <Link href="/create-studio">
-                    Create Your First Listing
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {studios.map((studio) => (
-                  <div
-                    key={studio._id || studio.id}
-                    className="border rounded-xl overflow-hidden bg-white"
-                  >
-                    <div className="relative h-44 bg-gray-100">
-                      <Image
-                        src={studio.image || studio.imageUrl || "/placeholder.jpg"}
-                        alt={studio.title || studio.name || "Studio"}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900">
-                        {studio.title || studio.name || "Untitled Studio"}
-                      </h3>
-
-                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-2">
-                        <MapPin className="h-4 w-4" />
-                        {studio.location || "Location not specified"}
-                      </p>
-                    </div>
+            {openSection === "account" && (
+              <div className="px-5 pb-5 pt-1">
+                <div className="rounded-xl bg-gray-50 p-4 space-y-4">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">
+                      Full Name
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {user.name || "Not provided"}
+                    </p>
                   </div>
-                ))}
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">
+                      Email Address
+                    </p>
+                    <p className="font-medium text-gray-900 break-all">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Booking Requests Link */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Booking Requests
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Manage booking requests received for your studios.
-                </p>
-              </div>
+          {/* My Listings */}
+          <div>
+            <SectionHeader
+              title="My Listings"
+              description={`${studios.length} studio${studios.length === 1 ? "" : "s"} listed`}
+              section="listings"
+              icon={<Building2 className="h-5 w-5" />}
+            />
 
-              <Button asChild className="bg-purple-600 hover:bg-purple-700">
-                <Link href="/booking-requests">
-                  Manage Requests
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {openSection === "listings" && (
+              <div className="px-5 pb-5 pt-1">
+                {studiosLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                  </div>
+                ) : studios.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Building2 className="h-10 w-10 mx-auto text-gray-300 mb-3" />
 
-        {/* My Bookings */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-purple-600" />
-              My Bookings
-            </CardTitle>
-          </CardHeader>
+                    <p className="text-gray-500 text-sm">
+                      You haven't listed any studios yet.
+                    </p>
 
-          <CardContent>
-            {bookingsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-              </div>
-            ) : bookings.length === 0 ? (
-              <div className="text-center py-8">
-                <CalendarDays className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-500">
-                  You haven't made any bookings yet.
-                </p>
-                <Button asChild variant="outline" className="mt-4">
-                  <Link href="/studios">
-                    Explore Studios
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {bookings.map((booking) => (
-                  <div
-                    key={booking._id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border rounded-xl p-4"
-                  >
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {booking.studioTitle}
-                      </h3>
-
-                      <p className="text-sm text-gray-500 mt-1">
-                        {booking.studioLocation}
-                      </p>
-
-                      <p className="text-sm text-gray-500 mt-1">
-                        Booking Date:{" "}
-                        {booking.bookingDate
-                          ? new Date(booking.bookingDate).toLocaleDateString()
-                          : "N/A"}
-                      </p>
-
-                      <p className="text-sm font-medium mt-2">
-                        Total: ৳{booking.totalPrice}
-                      </p>
-                    </div>
-
-                    <span
-                      className={`capitalize text-sm font-medium px-3 py-1 rounded-full w-fit ${
-                        booking.status === "accepted"
-                          ? "bg-green-100 text-green-700"
-                          : booking.status === "declined"
-                          ? "bg-red-100 text-red-700"
-                          : booking.status === "cancelled"
-                          ? "bg-gray-100 text-gray-600"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
+                    <Link
+                      href="/create-studio"
+                      className="inline-flex items-center justify-center mt-4 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition"
                     >
-                      {booking.status}
-                    </span>
+                      Add Your First Studio
+                    </Link>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-3">
+                    {studios.map((studio) => (
+                      <div
+                        key={studio._id || studio.id}
+                        className="flex items-center gap-4 border rounded-xl p-3"
+                      >
+                        <div className="relative h-16 w-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                          <Image
+                            src={
+                              studio.image ||
+                              studio.imageUrl ||
+                              "/placeholder.jpg"
+                            }
+                            alt={
+                              studio.title ||
+                              studio.name ||
+                              "Studio"
+                            }
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+
+                        <div className="min-w-0">
+                          <h3 className="font-medium text-gray-900 truncate">
+                            {studio.title ||
+                              studio.name ||
+                              "Untitled Studio"}
+                          </h3>
+
+                          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                              {studio.location ||
+                                "Location not specified"}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+
+                    <Link
+                      href="/create-studio"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 pt-2"
+                    >
+                      <Building2 className="h-4 w-4" />
+                      Add another studio
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
-          </CardContent>
+          </div>
+
+          {/* My Bookings */}
+          <div>
+            <SectionHeader
+              title="My Bookings"
+              description={`${bookings.length} booking${bookings.length === 1 ? "" : "s"} made`}
+              section="bookings"
+              icon={<CalendarDays className="h-5 w-5" />}
+            />
+
+            {openSection === "bookings" && (
+              <div className="px-5 pb-5 pt-1">
+                {bookingsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                  </div>
+                ) : bookings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CalendarDays className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+
+                    <p className="text-gray-500 text-sm">
+                      You haven't made any bookings yet.
+                    </p>
+
+                    <Link
+                      href="/studios"
+                      className="inline-flex items-center justify-center mt-4 rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-100 transition"
+                    >
+                      Explore Studios
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {bookings.map((booking) => (
+                      <div
+                        key={booking._id}
+                        className="border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {booking.studioTitle}
+                          </h3>
+
+                          <p className="text-sm text-gray-500 mt-1">
+                            {booking.studioLocation}
+                          </p>
+
+                          <p className="text-sm text-gray-500 mt-1">
+                            Booking Date:{" "}
+                            {booking.bookingDate
+                              ? new Date(
+                                  booking.bookingDate
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </p>
+
+                          <p className="text-sm font-semibold text-gray-900 mt-2">
+                            ৳{booking.totalPrice}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`capitalize text-xs font-semibold px-3 py-1.5 rounded-full w-fit ${
+                            booking.status === "accepted"
+                              ? "bg-green-100 text-green-700"
+                              : booking.status === "declined"
+                              ? "bg-red-100 text-red-700"
+                              : booking.status === "cancelled"
+                              ? "bg-gray-100 text-gray-600"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {booking.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </Card>
+
+        {/* Separate Booking Requests Page */}
+        <div className="mt-6">
+          <Link
+            href="/booking-requests"
+            className="flex items-center justify-between gap-4 rounded-xl border border-purple-100 bg-purple-50 p-4 hover:bg-purple-100 transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center text-purple-600">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  Manage Booking Requests
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Accept or decline requests for your studios.
+                </p>
+              </div>
+            </div>
+
+            <ArrowRight className="h-5 w-5 text-purple-600 shrink-0" />
+          </Link>
+        </div>
 
       </div>
     </main>
