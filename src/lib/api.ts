@@ -14,11 +14,6 @@ export async function apiFetch<T = unknown>(
   // Get JWT from Better Auth
   const { data, error } = await authClient.token();
 
-  console.log("JWT Token Response:", {
-    hasToken: Boolean(data?.token),
-    error: error?.message,
-  });
-
   if (error || !data?.token) {
     throw new Error(
       error?.message || "JWT token was not generated. Please login again."

@@ -15,6 +15,7 @@ import {
 
 import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import type { Studio } from "@/data/studio-catalog";
 
 import { Button } from "@/components/ui/button";
@@ -97,22 +98,22 @@ export function StudioDetailsDialog({
     }
 
     if (!date) {
-      setBookingError("Please select a booking date.");
+      toast.error("Please select a booking date.");
       return;
     }
 
     if (!startTime || !endTime) {
-      setBookingError("Please select both start and end times.");
+      toast.error("Please select both start and end times.");
       return;
     }
 
     if (selectedHours <= 0) {
-      setBookingError("End time must be later than start time.");
+      toast.error("End time must be later than start time.");
       return;
     }
 
     if (date < today) {
-      setBookingError("You cannot select a past date.");
+      toast.error("You cannot select a past date.");
       return;
     }
 
@@ -132,15 +133,17 @@ export function StudioDetailsDialog({
       });
 
       setBookingRequested(true);
+      toast.success("Booking request sent. Status is pending.");
 
       // Notify booking-related components to refresh their data
       window.dispatchEvent(new Event("bookings-updated"));
     } catch (error) {
-      setBookingError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Something went wrong. Please try again."
-      );
+          : "Something went wrong. Please try again.";
+      setBookingError(message);
+      toast.error(message);
     } finally {
       setIsBooking(false);
     }
@@ -240,13 +243,14 @@ export function StudioDetailsDialog({
             <p className="text-sm text-gray-500">Price per hour</p>
 
             <p className="text-2xl font-bold">
-              ৳{Number(studio.price || 0).toLocaleString("en-BD")}
+              ${Number(studio.price || 0).toLocaleString("en-US")}
+              <span className="text-sm font-medium text-gray-500"> / hr</span>
             </p>
 
             {studio.deposit > 0 && (
               <p className="mt-2 text-sm text-gray-500">
-                Security deposit: ৳
-                {studio.deposit.toLocaleString("en-BD")}
+                Security deposit: $
+                {studio.deposit.toLocaleString("en-US")}
               </p>
             )}
           </div>

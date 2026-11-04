@@ -15,6 +15,7 @@ export interface MyStudio {
   overview: string;
   rating: number;
   gradient: string;
+  image?: string;
 }
 
 type StudioRecord = Record<string, unknown>;
@@ -98,7 +99,7 @@ function toMyStudio(
     category: getString(record, "category") || "Studio",
     location:
       getString(record, "location") || "Location not provided",
-    price: getNumber(record, "price", 0),
+    price: getNumber(record, "hourlyRate", getNumber(record, "price", 0)),
     capacity: getNumber(record, "capacity", 0),
     overview:
       getString(record, "overview", "description") ||
@@ -107,12 +108,14 @@ function toMyStudio(
     gradient:
       getString(record, "gradient") ||
       "from-[#d6247f] via-[#e83e8c] to-[#ff9a3c]",
+    image: getString(record, "image", "imageUrl") || undefined,
   };
 }
 
 export function useMyListings() {
   const { user, isLoading: isAuthLoading } = useAuth();
 
+  const [version, setVersion] = React.useState(0);
   const [result, setResult] = React.useState<{
     email: string;
     listings: MyStudio[];
@@ -172,7 +175,7 @@ export function useMyListings() {
     void loadListings();
 
     return () => controller.abort();
-  }, [isAuthLoading, user]);
+  }, [isAuthLoading, user, version]);
 
   const email = user?.email.trim().toLowerCase() ?? "";
 
@@ -184,5 +187,6 @@ export function useMyListings() {
     isLoading:
       isAuthLoading || (Boolean(user) && !currentResult),
     error: currentResult?.error ?? "",
+    refresh: () => setVersion((current) => current + 1),
   };
 }

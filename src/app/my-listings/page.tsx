@@ -1,49 +1,49 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Loader2, MapPin, PlusCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/auth-context";
-import { useMyListings } from "@/hooks/use-my-listings";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AuthGate } from "@/components/auth-gate";
+import { useMyListings, type MyStudio } from "@/hooks/use-my-listings";
+import { apiFetch } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
-export default function MyListingsPage() {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const { listings: myListings, isLoading, error } = useMyListings();
+function Listings() {
+  const { listings: myListings, isLoading, error, refresh } = useMyListings();
+  const [pendingDelete, setPendingDelete] = React.useState<MyStudio | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
-  if (isAuthLoading || isLoading) {
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/studios/${pendingDelete.id}`, { method: "DELETE" });
+      toast.success("Studio deleted.");
+      setPendingDelete(null);
+      refresh();
+    } catch (deleteError) {
+      toast.error(
+        deleteError instanceof Error ? deleteError.message : "Could not delete this studio."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (isLoading) {
     return (
       <div className="flex min-h-[calc(100vh-140px)] items-center justify-center">
         <Loader2 className="size-8 animate-spin text-[#db1a6e]" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex min-h-[calc(100vh-140px)] items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold text-slate-900 dark:text-white">
-              Sign in to view your listings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Log in or register to see the spaces you own.
-            </p>
-            <div className="flex justify-center gap-3">
-              <Link href="/login">
-                <Button className="rounded-xl bg-[#db1a6e] text-white hover:bg-[#c2135f]">Login</Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="outline" className="rounded-xl border-slate-200 dark:border-slate-800">
-                  Register
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -98,6 +98,18 @@ export default function MyListingsPage() {
                   <span className="font-semibold text-[#db1a6e]">${studio.price}/hr</span>
                   <span className="text-slate-500 dark:text-slate-400">{studio.capacity} guests</span>
                 </div>
+                <div className="flex gap-2">
+                  <Link href={`/studios/edit/${studio.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full rounded-xl">Update</Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-xl text-rose-600"
+                    onClick={() => setPendingDelete(studio)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -115,6 +127,35 @@ export default function MyListingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={Boolean(pendingDelete)} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this studio?</DialogTitle>
+            <DialogDescription>
+              {pendingDelete?.title} will be removed from StudioSpace. Pending bookings on it will be cancelled.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>Keep studio</Button>
+            <Button
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              disabled={deleting}
+              onClick={confirmDelete}
+            >
+              {deleting ? "Deleting..." : "Delete studio"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function MyListingsPage() {
+  return (
+    <AuthGate>
+      <Listings />
+    </AuthGate>
   );
 }

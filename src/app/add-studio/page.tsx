@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { uploadImageToImgbb } from "@/lib/upload-image";
 
 const CATEGORIES = [
   "Photo Studio",
@@ -111,10 +113,10 @@ export default function AddStudioPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !price) {
-      setErrorMessage(
-        "Please enter at least a studio title and hourly rate."
-      );
+    if (!title.trim() || !price || !location.trim() || !overview.trim() || !imageUrl.trim()) {
+      const message = "Title, location, hourly rate, image, and overview are required.";
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
 
@@ -160,15 +162,15 @@ export default function AddStudioPage() {
         body: JSON.stringify(newStudio),
       });
 
-      setSuccess(true);
+      toast.success("Studio published.");
+      router.push("/my-listings");
     } catch (err: unknown) {
-      console.error("Failed to publish studio:", err);
-
-      setErrorMessage(
+      const message =
         err instanceof Error
           ? err.message
-          : "Failed to publish studio. Please try again."
-      );
+          : "Failed to publish studio. Please try again.";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -381,6 +383,26 @@ export default function AddStudioPage() {
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   className="mt-2 h-11 rounded-xl border-slate-200 bg-[#f4f5fa]/70 text-sm dark:border-slate-800 dark:bg-slate-800/80"
+                />
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="mt-2"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const url = await uploadImageToImgbb(file);
+                      setImageUrl(url);
+                      toast.success("Image uploaded.");
+                    } catch (uploadError) {
+                      toast.error(
+                        uploadError instanceof Error
+                          ? uploadError.message
+                          : "Image upload failed."
+                      );
+                    }
+                  }}
                 />
               </div>
             </div>

@@ -27,9 +27,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { StudioDetailsDialog } from "@/components/studios/studio-details-dialog";
 import { CATEGORIES, type Category, type Studio } from "@/data/studio-catalog";
 import { useStudios } from "@/hooks/use-studios";
+import { useWishlist } from "@/hooks/use-wishlist";
 
 type CategoryFilter = "all" | Category["key"];
 
@@ -91,8 +91,7 @@ export function StudiosExplorer() {
   const [maxPrice, setMaxPrice] = React.useState<number | null>(null);
   const [minCapacity, setMinCapacity] = React.useState(0);
   const [sort, setSort] = React.useState<SortKey>("recommended");
-  const [savedIds, setSavedIds] = React.useState<Set<Studio["id"]>>(new Set());
-  const [selectedStudio, setSelectedStudio] = React.useState<Studio | null>(null);
+  const { isSaved, toggleSave } = useWishlist();
 
   const prices = studios.map((studio) => studio.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;
@@ -171,20 +170,8 @@ export function StudiosExplorer() {
     router.replace("/studios", { scroll: false });
   };
 
-  const toggleSave = (id: Studio["id"]) => {
-    setSavedIds((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
   const openDetails = (studio: Studio) => {
-    setSelectedStudio(studio);
+    router.push(`/studios/${studio.id}`);
   };
 
   return (
@@ -415,7 +402,7 @@ export function StudiosExplorer() {
         ) : filteredStudios.length > 0 ? (
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredStudios.map((studio) => {
-              const isSaved = savedIds.has(studio.id);
+              const saved = isSaved(studio.id);
 
               return (
                 <Card
@@ -446,18 +433,18 @@ export function StudiosExplorer() {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          toggleSave(studio.id);
+                          void toggleSave(studio.id);
                         }}
-                        aria-label={isSaved ? "Remove from wishlist" : "Save to wishlist"}
-                        aria-pressed={isSaved}
+                        aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
+                        aria-pressed={saved}
                         className={`inline-flex size-9 items-center justify-center rounded-full transition-colors ${
-                          isSaved
+                          saved
                             ? "bg-white text-[#db1a6e] shadow-md"
                             : "bg-white/80 text-slate-800 backdrop-blur-xs hover:bg-white dark:bg-slate-900/80 dark:text-white"
                         }`}
                       >
                         <Heart
-                          className={`size-4.5 ${isSaved ? "fill-[#db1a6e]" : ""}`}
+                          className={`size-4.5 ${saved ? "fill-[#db1a6e]" : ""}`}
                         />
                       </button>
                     </div>
@@ -564,12 +551,6 @@ export function StudiosExplorer() {
           </Link>
         </div>
       </section>
-
-      <StudioDetailsDialog
-        key={selectedStudio?.id ?? "closed"}
-        studio={selectedStudio}
-        onClose={() => setSelectedStudio(null)}
-      />
     </div>
   );
 }

@@ -1,36 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StudioSpace
 
-## Getting Started
+Live site: run the app locally at [http://localhost:3000](http://localhost:3000). A public Vercel URL is not attached to this folder yet.
 
-First, run the development server:
+StudioSpace is a peer-to-peer marketplace where filmmakers, photographers, podcasters, and musicians book creative rooms by the hour.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Browse photo studios, film stages, podcast lounges, music suites, and workshops, then book an exact time slot.
+- Hosts list a space with hourly rate, deposit, amenities, and photos stored in MongoDB.
+- Signed-in users keep their session on reload and manage listings, bookings, and saved studios.
+- Light and dark themes, toast feedback, and a custom 404 page cover the main flows.
+- Tech stack: Next.js App Router, TypeScript, Tailwind, shadcn/ui, React Hot Toast, Better Auth, Express, and MongoDB.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Start MongoDB and copy the server environment variables (`MONGODB_URI`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `CLIENT_URL`, and optional `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
+2. In `stdiospace-server`, run `npm install` and `npm start` (API on port 5000).
+3. In `stdiospace-client`, set `NEXT_PUBLIC_API_URL=http://localhost:5000` and, for image uploads, `NEXT_PUBLIC_IMGBB_API_KEY`.
+4. Run `npm install` and `npm run dev`, then open [http://localhost:3000](http://localhost:3000).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Examiner test credentials
 
-## Learn More
+- Email: `rina@mail.com`
+- Password: `password123`
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+New registrations must use at least 6 characters with one uppercase and one lowercase letter. Password reset and email verification are intentionally off.

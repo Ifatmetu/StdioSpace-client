@@ -5,7 +5,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Aperture } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "@/lib/toast";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +17,9 @@ function LoginForm() {
   const searchParams = useSearchParams();
 
   const requestedRedirect = searchParams.get("redirect");
-  const redirectUrl = requestedRedirect || "/profile";
+  const redirectUrl = requestedRedirect || "/";
 
-  const { login, user, isLoading } = useAuth();
+  const { login, loginWithGoogle, user, isLoading } = useAuth();
 
   const [email, setEmail] = React.useState("rina@mail.com");
   const [password, setPassword] = React.useState("password123");
@@ -75,13 +75,30 @@ function LoginForm() {
           </Link>
 
           <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white">
-            Welcome back
+            Login
           </h2>
 
           <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
             Log in to manage your spaces and take creator bookings.
           </p>
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full rounded-xl border-slate-200 font-semibold dark:border-slate-700"
+          onClick={async () => {
+            try {
+              await loginWithGoogle(`${window.location.origin}${redirectUrl}`);
+            } catch (err) {
+              toast.error(
+                err instanceof Error ? err.message : "Google sign-in failed."
+              );
+            }
+          }}
+        >
+          Continue with Google
+        </Button>
 
         <div className="relative my-4 flex items-center justify-center">
           <div className="w-full border-t border-slate-200 dark:border-slate-800" />
@@ -112,6 +129,17 @@ function LoginForm() {
               <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Password
               </Label>
+              <button
+                type="button"
+                className="text-xs font-semibold text-[#db1a6e] hover:underline"
+                onClick={() =>
+                  toast.info(
+                    "Password reset is turned off for this review so you can sign in with the examiner account."
+                  )
+                }
+              >
+                Forgot Password
+              </button>
             </div>
 
             <Input

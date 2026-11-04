@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 export interface User {
   name: string;
   email: string;
+  image?: string;
 }
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
     image?: string
   ) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithGoogle: (callbackURL: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -37,6 +39,7 @@ export function AuthProvider({
     ? {
         name: session.user.name,
         email: session.user.email,
+        image: session.user.image || "",
       }
     : null;
 
@@ -71,6 +74,17 @@ export function AuthProvider({
     }
   };
 
+  const loginWithGoogle = async (callbackURL: string) => {
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL,
+    });
+
+    if (error) {
+      throw new Error(error.message || "Google sign-in failed.");
+    }
+  };
+
   // Logout
   const logout = async () => {
     const { error } = await authClient.signOut();
@@ -87,6 +101,7 @@ export function AuthProvider({
         login,
         register,
         logout,
+        loginWithGoogle,
         isLoading: isPending,
       }}
     >

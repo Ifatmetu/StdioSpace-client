@@ -4,8 +4,8 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { AuthProvider } from "@/context/auth-context";
-import { Toaster } from "@/components/ui/toast";
-
+import { Toaster } from "react-hot-toast";
+import { Suspense } from "react";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,11 +33,29 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}",
+          }}
+        />
         <AuthProvider>
-          <Navbar />
+          <Suspense fallback={<div className="h-16" />}>
+  <Navbar />
+</Suspense>
           <main className="flex-1">{children}</main>
           <Footer />
-          <Toaster />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                borderRadius: "16px",
+                background: "#14142b",
+                color: "#fff",
+              },
+            }}
+          />
         </AuthProvider>
       </body>
     </html>

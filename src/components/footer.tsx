@@ -6,6 +6,7 @@ import { Aperture } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CATEGORIES } from "@/data/studio-catalog";
+import { toast } from "@/lib/toast";
 
 export function Footer() {
   const [email, setEmail] = React.useState("");
@@ -16,6 +17,7 @@ export function Footer() {
     if (email.trim()) {
       setSubscribed(true);
       setEmail("");
+      toast.success("You are on the StudioSpace list.");
       setTimeout(() => setSubscribed(false), 4000);
     }
   };
@@ -64,7 +66,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/#how-it-works"
+                  href="/how-it-works"
                   className="text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white"
                 >
                   How It Works

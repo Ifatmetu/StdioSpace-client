@@ -1,32 +1,17 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Heart, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { StudioDetailsDialog } from "@/components/studios/studio-details-dialog";
-import type { Studio } from "@/data/studio-catalog";
 import { useStudios } from "@/hooks/use-studios";
+import { useWishlist } from "@/hooks/use-wishlist";
 
 export function FeaturedStudios() {
-  const { studios, isLoading, error } = useStudios();
-  const [savedIds, setSavedIds] = React.useState<Set<Studio["id"]>>(new Set());
-  const [selectedStudio, setSelectedStudio] = React.useState<Studio | null>(null);
-
-  const toggleSave = (id: Studio["id"], e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  const router = useRouter();
+  const { studios, isLoading, error } = useStudios("/studios/featured");
+  const { isSaved, toggleSave } = useWishlist();
 
   return (
     <section className="py-16 sm:py-24">
@@ -72,12 +57,12 @@ export function FeaturedStudios() {
             </p>
           ) : (
             studios.slice(0, 6).map((studio) => {
-              const isSaved = savedIds.has(studio.id);
+              const saved = isSaved(studio.id);
 
               return (
                 <Card
                   key={studio.id}
-                  onClick={() => setSelectedStudio(studio)}
+                  onClick={() => router.push(`/studios/${studio.id}`)}
                   className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
                 >
                 {/* Visual Thumbnail */}
@@ -96,15 +81,19 @@ export function FeaturedStudios() {
                     </span>
 
                     <button
-                      onClick={(e) => toggleSave(studio.id, e)}
-                      aria-label={isSaved ? "Remove from wishlist" : "Save to wishlist"}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void toggleSave(studio.id);
+                      }}
+                      aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
                       className={`inline-flex size-9 items-center justify-center rounded-full transition-colors ${
-                        isSaved
+                        saved
                           ? "bg-white text-[#db1a6e] shadow-md"
                           : "bg-white/80 text-slate-800 backdrop-blur-xs hover:bg-white dark:bg-slate-900/80 dark:text-white"
                       }`}
                     >
-                      <Heart className={`size-4.5 ${isSaved ? "fill-[#db1a6e]" : ""}`} />
+                      <Heart className={`size-4.5 ${saved ? "fill-[#db1a6e]" : ""}`} />
                     </button>
                   </div>
 
@@ -161,7 +150,7 @@ export function FeaturedStudios() {
                       size="sm"
                       onClick={(event) => {
                         event.stopPropagation();
-                        setSelectedStudio(studio);
+                        router.push(`/studios/${studio.id}`);
                       }}
                       className="rounded-xl border-slate-200 font-semibold hover:border-[#db1a6e] hover:text-[#db1a6e] dark:border-slate-700"
                     >
@@ -176,11 +165,6 @@ export function FeaturedStudios() {
         </div>
 
       </div>
-      <StudioDetailsDialog
-        key={selectedStudio?.id ?? "closed"}
-        studio={selectedStudio}
-        onClose={() => setSelectedStudio(null)}
-      />
     </section>
   );
 }

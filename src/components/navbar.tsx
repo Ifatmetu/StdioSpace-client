@@ -27,12 +27,13 @@ import {
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/context/auth-context";
+import { toast } from "@/lib/toast";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/" },
   { label: "Explore Studios", href: "/studios" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "About Us", href: "/#host-guarantee" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "About Us", href: "/about" },
 ];
 
 export function Navbar() {
@@ -58,10 +59,11 @@ export function Navbar() {
       setUserMenuOpen(false);
       setIsOpen(false);
 
+      toast.success("Logged out.");
       router.replace("/");
       router.refresh();
     } catch (error) {
-      console.error("Logout failed:", error);
+      toast.error(error instanceof Error ? error.message : "Logout failed.");
     } finally {
       setIsLoggingOut(false);
     }
@@ -137,15 +139,15 @@ export function Navbar() {
     }
 
     if (href === "/studios") {
-      return pathname.startsWith("/studios");
+      return pathname === "/studios" || pathname.startsWith("/studios/");
     }
 
-    if (href === "/#how-it-works") {
-      return pathname === "/" && currentHash === "#how-it-works";
+    if (href === "/how-it-works") {
+      return pathname === "/how-it-works";
     }
 
-    if (href === "/#host-guarantee") {
-      return pathname === "/" && currentHash === "#host-guarantee";
+    if (href === "/about") {
+      return pathname === "/about";
     }
 
     return pathname === href;
@@ -210,18 +212,26 @@ export function Navbar() {
           <ThemeToggle />
 
           {user ? (
-            <div className="relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setUserMenuOpen(true)}
+              onMouseLeave={() => setUserMenuOpen(false)}
+            >
               <button
                 onClick={() =>
                   setUserMenuOpen(!userMenuOpen)
                 }
-                className="flex size-10 items-center justify-center rounded-full bg-[#db1a6e] font-bold text-white shadow-xs transition-transform hover:scale-105 active:scale-95"
+                className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-[#db1a6e] font-bold text-white shadow-xs transition-transform hover:scale-105 active:scale-95"
                 aria-label="User menu"
                 aria-expanded={userMenuOpen}
               >
-                {user.name
-                  ? user.name.charAt(0).toUpperCase()
-                  : "U"}
+                {user.image ? (
+                  <img src={user.image} alt="" className="size-full object-cover" />
+                ) : user.name ? (
+                  user.name.charAt(0).toUpperCase()
+                ) : (
+                  "U"
+                )}
               </button>
 
               {userMenuOpen && (
@@ -244,8 +254,8 @@ export function Navbar() {
                       href="/profile"
                       className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
-                      <UserIcon className="size-4 text-[#db1a6e]" />
-                      Profile
+                      <LayoutDashboard className="size-4 text-[#db1a6e]" />
+                      Dashboard
                     </Link>
 
                     <Link
@@ -260,8 +270,16 @@ export function Navbar() {
                       href="/my-listings"
                       className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
-                      <UserIcon className="size-4 text-slate-400" />
-                      My Listings
+                      <Building2 className="size-4 text-slate-400" />
+                      My Studio Listings
+                    </Link>
+
+                    <Link
+                      href="/my-bookings"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      <CalendarDays className="size-4 text-slate-400" />
+                      My Bookings
                     </Link>
                   </div>
 
@@ -383,7 +401,7 @@ export function Navbar() {
                           variant="outline"
                           className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800"
                         >
-                          Profile
+                          Dashboard
                         </Button>
                       </Link>
 
@@ -395,7 +413,19 @@ export function Navbar() {
                           variant="outline"
                           className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800"
                         >
-                          My Listings
+                          My Studio Listings
+                        </Button>
+                      </Link>
+
+                      <Link
+                        href="/my-bookings"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Button
+                          variant="outline"
+                          className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800"
+                        >
+                          My Bookings
                         </Button>
                       </Link>
 

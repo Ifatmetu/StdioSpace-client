@@ -1,75 +1,48 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Aperture } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/auth-context";
+import { getPasswordError } from "@/lib/password";
+import { toast } from "@/lib/toast";
 
 export default function Register() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, logout, loginWithGoogle } = useAuth();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    existingStudio: false,
-  });
-
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
 
+    const nextPasswordError = getPasswordError(password);
+    setPasswordError(nextPasswordError);
+
+    if (nextPasswordError) {
+      toast.error(nextPasswordError);
+      return;
+    }
+
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
-      await register(
-        formData.name,
-        formData.email,
-        formData.password
-      );
-
-      setSuccess("Registration successful!");
-
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        existingStudio: false,
-      });
-
-      router.push("/profile");
+      await register(name.trim(), email.trim(), password, photoUrl.trim());
+      await logout().catch(() => undefined);
+      toast.success("Account created. Please log in.");
+      router.push("/login");
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Registration failed. Please try again."
+      toast.error(
+        err instanceof Error ? err.message : "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -77,120 +50,111 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="flex min-h-[calc(100vh-140px)] items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-8 rounded-3xl border border-slate-200/90 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="text-center">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <Aperture className="size-8 text-[#db1a6e]" />
+            <span className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">
+              StudioSpace
+            </span>
+          </Link>
+          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white">
+            Register
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
+            Create an account to book rooms or list your own studio.
+          </p>
+        </div>
 
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-bold">
-            Join StudioSpace
-          </CardTitle>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full rounded-xl border-slate-200 font-semibold dark:border-slate-700"
+          onClick={async () => {
+            try {
+              await loginWithGoogle(`${window.location.origin}/`);
+            } catch (err) {
+              toast.error(
+                err instanceof Error ? err.message : "Google sign-in failed."
+              );
+            }
+          }}
+        >
+          Continue with Google
+        </Button>
 
-          <CardDescription>
-            Create your account and explore creative spaces.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleRegister} className="space-y-5">
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-
-              <Input
-                id="name"
-                name="name"
-                placeholder="Enter your name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="example@email.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleChange}
-                minLength={6}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Password must contain at least 6 characters.
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Checkbox
-                id="existingStudio"
-                checked={formData.existingStudio}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    existingStudio: checked === true,
-                  }))
-                }
-              />
-
-              <Label
-                htmlFor="existingStudio"
-                className="cursor-pointer text-sm"
-              >
-                I already own a studio
-              </Label>
-            </div>
-
-            {error && (
-              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                {error}
-              </p>
-            )}
-
-            {success && (
-              <p className="rounded-lg bg-green-50 p-3 text-sm text-green-600">
-                {success}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? "Registering..." : "Register"}
-            </Button>
-
-            <p className="text-center text-sm text-gray-500">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="font-semibold text-primary hover:underline"
-              >
-                Login
-              </Link>
+        <form onSubmit={handleRegister} className="space-y-4">
+          <div>
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+              className="mt-1.5 h-11 rounded-xl"
+            />
+          </div>
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="mt-1.5 h-11 rounded-xl"
+            />
+          </div>
+          <div>
+            <Label htmlFor="photo">Photo URL</Label>
+            <Input
+              id="photo"
+              type="url"
+              placeholder="https://"
+              value={photoUrl}
+              onChange={(event) => setPhotoUrl(event.target.value)}
+              className="mt-1.5 h-11 rounded-xl"
+            />
+          </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setPasswordError(getPasswordError(event.target.value));
+              }}
+              required
+              className="mt-1.5 h-11 rounded-xl"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Use at least 6 characters, with one uppercase and one lowercase letter.
             </p>
+            {passwordError && (
+              <p className="mt-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+                {passwordError}
+              </p>
+            )}
+          </div>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="h-11 w-full rounded-xl bg-[#db1a6e] font-bold text-white hover:bg-[#c2135f]"
+          >
+            {loading ? "Registering..." : "Register"}
+          </Button>
+        </form>
 
-          </form>
-        </CardContent>
-      </Card>
+        <p className="text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-[#db1a6e] hover:underline">
+            Login
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

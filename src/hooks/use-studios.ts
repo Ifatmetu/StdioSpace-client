@@ -184,7 +184,7 @@ function toStudio(
 };
 }
 
-export function useStudios() {
+export function useStudios(path = "/studios/public") {
   const [studios, setStudios] = React.useState<Studio[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -206,7 +206,7 @@ export function useStudios() {
         }
 
         // Public API: fetch all studios for Home Page
-        const response = await fetch(`${apiUrl}/studios/public`, {
+        const response = await fetch(`${apiUrl}${path}`, {
           method: "GET",
           cache: "no-store",
           signal: controller.signal,
@@ -252,7 +252,7 @@ export function useStudios() {
     void loadStudios();
 
     return () => controller.abort();
-  }, []);
+  }, [path]);
 
   return {
     studios,
