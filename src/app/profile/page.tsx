@@ -1,52 +1,43 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   User,
-  Mail,
   Building2,
   CalendarDays,
   ArrowRight,
   MapPin,
   ChevronDown,
-  Settings,
   Loader2,
   ClipboardList,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { useAuth } from "@/context/auth-context";
+import { useMyListings } from "@/hooks/use-my-listings";
 import { useMyBookings } from "@/hooks/use-my-bookings";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-interface Studio {
-  _id?: string;
-  id?: string;
-  title?: string;
-  name?: string;
-  image?: string;
-  imageUrl?: string;
-  location?: string;
-}
 
 type SectionName = "account" | "listings" | "bookings";
 
 export default function ProfilePage() {
   const { user } = useAuth();
 
-  const { bookings, isLoading: bookingsLoading } = useMyBookings();
+  // Fetch user's studios with JWT authentication
+  const {
+    listings: studios,
+    isLoading: studiosLoading,
+    error: studiosError,
+  } = useMyListings();
 
-  const [studios, setStudios] = useState<Studio[]>([]);
-  const [studiosLoading, setStudiosLoading] = useState(true);
+  // Fetch user's bookings
+  const {
+    bookings,
+    isLoading: bookingsLoading,
+  } = useMyBookings();
 
   const [openSection, setOpenSection] =
     useState<SectionName | null>("account");
@@ -56,35 +47,6 @@ export default function ProfilePage() {
       current === section ? null : section
     );
   };
-
-  useEffect(() => {
-    const fetchStudios = async () => {
-      if (!user?.email) {
-        setStudiosLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `${API_URL}/studios?userEmail=${encodeURIComponent(user.email)}`
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setStudios(
-            Array.isArray(data) ? data : data.studios || []
-          );
-        }
-      } catch (error) {
-        console.error("Failed to fetch studios:", error);
-      } finally {
-        setStudiosLoading(false);
-      }
-    };
-
-    fetchStudios();
-  }, [user?.email]);
 
   const SectionHeader = ({
     title,
@@ -112,6 +74,7 @@ export default function ProfilePage() {
           <h2 className="font-semibold text-gray-900">
             {title}
           </h2>
+
           <p className="text-sm text-gray-500 mt-1">
             {description}
           </p>
@@ -199,6 +162,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-gray-500 mb-1">
                       Full Name
                     </p>
+
                     <p className="font-medium text-gray-900">
                       {user.name || "Not provided"}
                     </p>
@@ -208,6 +172,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-gray-500 mb-1">
                       Email Address
                     </p>
+
                     <p className="font-medium text-gray-900 break-all">
                       {user.email}
                     </p>
@@ -221,17 +186,30 @@ export default function ProfilePage() {
           <div>
             <SectionHeader
               title="My Listings"
-              description={`${studios.length} studio${studios.length === 1 ? "" : "s"} listed`}
+              description={
+                studiosLoading
+                  ? "Loading your studios..."
+                  : `${studios.length} studio${studios.length === 1 ? "" : "s"} listed`
+              }
               section="listings"
               icon={<Building2 className="h-5 w-5" />}
             />
 
             {openSection === "listings" && (
               <div className="px-5 pb-5 pt-1">
+
                 {studiosLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
                   </div>
+
+                ) : studiosError ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-500 text-sm">
+                      {studiosError}
+                    </p>
+                  </div>
+
                 ) : studios.length === 0 ? (
                   <div className="text-center py-8">
                     <Building2 className="h-10 w-10 mx-auto text-gray-300 mb-3" />
@@ -241,31 +219,24 @@ export default function ProfilePage() {
                     </p>
 
                     <Link
-                      href="/create-studio"
+                      href="/add-studio"
                       className="inline-flex items-center justify-center mt-4 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition"
                     >
                       Add Your First Studio
                     </Link>
                   </div>
+
                 ) : (
                   <div className="space-y-3">
                     {studios.map((studio) => (
                       <div
-                        key={studio._id || studio.id}
+                        key={studio.id}
                         className="flex items-center gap-4 border rounded-xl p-3"
                       >
                         <div className="relative h-16 w-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                           <Image
-                            src={
-                              studio.image ||
-                              studio.imageUrl ||
-                              "/placeholder.jpg"
-                            }
-                            alt={
-                              studio.title ||
-                              studio.name ||
-                              "Studio"
-                            }
+                            src="/placeholder.jpg"
+                            alt={studio.title}
                             fill
                             className="object-cover"
                             unoptimized
@@ -274,24 +245,26 @@ export default function ProfilePage() {
 
                         <div className="min-w-0">
                           <h3 className="font-medium text-gray-900 truncate">
-                            {studio.title ||
-                              studio.name ||
-                              "Untitled Studio"}
+                            {studio.title}
                           </h3>
 
                           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
+
                             <span className="truncate">
-                              {studio.location ||
-                                "Location not specified"}
+                              {studio.location}
                             </span>
+                          </p>
+
+                          <p className="text-sm text-gray-500 mt-1">
+                            {studio.category} · ${studio.price}/hr
                           </p>
                         </div>
                       </div>
                     ))}
 
                     <Link
-                      href="/create-studio"
+                      href="/add-studio"
                       className="inline-flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 pt-2"
                     >
                       <Building2 className="h-4 w-4" />
@@ -315,10 +288,12 @@ export default function ProfilePage() {
 
             {openSection === "bookings" && (
               <div className="px-5 pb-5 pt-1">
+
                 {bookingsLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
                   </div>
+
                 ) : bookings.length === 0 ? (
                   <div className="text-center py-8">
                     <CalendarDays className="h-10 w-10 mx-auto text-gray-300 mb-3" />
@@ -334,6 +309,7 @@ export default function ProfilePage() {
                       Explore Studios
                     </Link>
                   </div>
+
                 ) : (
                   <div className="space-y-3">
                     {bookings.map((booking) => (
@@ -386,7 +362,7 @@ export default function ProfilePage() {
           </div>
         </Card>
 
-        {/* Separate Booking Requests Page */}
+        {/* Manage Booking Requests */}
         <div className="mt-6">
           <Link
             href="/booking-requests"
@@ -401,6 +377,7 @@ export default function ProfilePage() {
                 <h3 className="font-semibold text-gray-900 text-sm">
                   Manage Booking Requests
                 </h3>
+
                 <p className="text-xs text-gray-500 mt-1">
                   Accept or decline requests for your studios.
                 </p>

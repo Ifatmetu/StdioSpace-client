@@ -1,23 +1,76 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import { apiFetch } from "@/lib/api";
+
+export type BookingStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled"
+  | "completed";
 
 export interface Booking {
   _id: string;
-  userId?: string | null;
+
+  userId?: string;
   userEmail: string;
   userName: string;
+
+  hostId?: string;
   hostEmail: string;
+
   studioId: string;
   studioTitle: string;
   studioImage: string;
   studioLocation: string;
+
   bookingDate: string;
+  startTime?: string;
+  endTime?: string;
   totalPrice: number;
-  status: "pending" | "accepted" | "declined" | "cancelled";
+
+  status: BookingStatus;
+
   createdAt: string;
   updatedAt?: string;
+}
+
+// Convert Backend status to Frontend status
+function normalizeBookingStatus(status: string): BookingStatus {
+  switch (String(status || "").toLowerCase()) {
+    case "pending":
+      return "pending";
+
+    case "confirmed":
+    case "accepted":
+      return "accepted";
+
+    case "declined":
+      return "declined";
+
+    case "cancelled":
+    case "canceled":
+      return "cancelled";
+
+    case "completed":
+      return "completed";
+
+    default:
+      return "pending";
+  }
+}
+
+// Normalize complete booking object
+function normalizeBookings(data: Booking[]): Booking[] {
+  if (!Array.isArray(data)) return [];
+
+  return data.map((booking) => ({
+    ...booking,
+    status: normalizeBookingStatus(booking.status),
+  }));
 }
 
 export function useMyBookings() {
@@ -30,10 +83,7 @@ export function useMyBookings() {
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState("");
 
-  const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-  // Fetch customer bookings and owner requests
+  // Fetch customer bookings and host booking requests
   const fetchBookings = useCallback(
     async (signal?: AbortSignal) => {
       if (!user?.email) {
@@ -47,51 +97,24 @@ export function useMyBookings() {
         setIsLoading(true);
         setError("");
 
-        const email = user.email.trim().toLowerCase();
+        const [myData, hostData] = await Promise.all([
+          apiFetch<Booking[]>("/bookings", {
+            method: "GET",
+            cache: "no-store",
+            signal,
+          }),
 
-        const [myBookingsResponse, requestsResponse] =
-          await Promise.all([
-            fetch(
-              `${apiUrl}/bookings?userEmail=${encodeURIComponent(email)}`,
-              {
-                method: "GET",
-                cache: "no-store",
-                signal,
-              }
-            ),
+          apiFetch<Booking[]>("/bookings?role=host", {
+            method: "GET",
+            cache: "no-store",
+            signal,
+          }),
+        ]);
 
-            fetch(
-              `${apiUrl}/bookings?userEmail=${encodeURIComponent(email)}&role=host`,
-              {
-                method: "GET",
-                cache: "no-store",
-                signal,
-              }
-            ),
-          ]);
+        if (signal?.aborted) return;
 
-        const myBookingsData = await myBookingsResponse.json();
-        const requestsData = await requestsResponse.json();
-
-        if (!myBookingsResponse.ok) {
-          throw new Error(
-            myBookingsData.message || "Could not load your bookings"
-          );
-        }
-
-        if (!requestsResponse.ok) {
-          throw new Error(
-            requestsData.message || "Could not load booking requests"
-          );
-        }
-
-        setBookings(
-          Array.isArray(myBookingsData) ? myBookingsData : []
-        );
-
-        setBookingRequests(
-          Array.isArray(requestsData) ? requestsData : []
-        );
+        setBookings(normalizeBookings(myData));
+        setBookingRequests(normalizeBookings(hostData));
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return;
@@ -100,7 +123,7 @@ export function useMyBookings() {
         setError(
           err instanceof Error
             ? err.message
-            : "Something went wrong"
+            : "Could not load bookings"
         );
       } finally {
         if (!signal?.aborted) {
@@ -108,21 +131,32 @@ export function useMyBookings() {
         }
       }
     },
-    [user?.email, apiUrl]
+    [user?.email]
   );
 
-  // Load bookings when the user changes
+  // Initial fetch and event listener
   useEffect(() => {
     const controller = new AbortController();
 
     fetchBookings(controller.signal);
 
+    const handleUpdate = () => {
+      fetchBookings();
+    };
+
+    window.addEventListener("bookings-updated", handleUpdate);
+
     return () => {
       controller.abort();
+
+      window.removeEventListener(
+        "bookings-updated",
+        handleUpdate
+      );
     };
   }, [fetchBookings]);
 
-  // Accept or decline a booking
+  // Accept or decline booking request
   const updateBookingStatus = async (
     bookingId: string,
     status: "accepted" | "declined"
@@ -134,32 +168,51 @@ export function useMyBookings() {
     try {
       setUpdatingId(bookingId);
 
-      const response = await fetch(
-        `${apiUrl}/bookings/${bookingId}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            hostEmail: user.email.trim().toLowerCase(),
-            status,
-          }),
-        }
-      );
+      await apiFetch(`/bookings/${bookingId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Could not update booking status"
-        );
-      }
-
-      // Refresh both lists after updating
       await fetchBookings();
 
-      return data;
+      window.dispatchEvent(new Event("bookings-updated"));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not update booking status"
+      );
+
+      throw err;
+    } finally {
+      setUpdatingId("");
+    }
+  };
+
+  // Customer cancels own pending booking
+  const cancelBooking = async (bookingId: string) => {
+    if (!user?.email) {
+      throw new Error("Please login first");
+    }
+
+    try {
+      setUpdatingId(bookingId);
+
+      await apiFetch(`/bookings/${bookingId}/cancel`, {
+        method: "PATCH",
+      });
+
+      await fetchBookings();
+
+      window.dispatchEvent(new Event("bookings-updated"));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not cancel booking"
+      );
+
+      throw err;
     } finally {
       setUpdatingId("");
     }
@@ -171,7 +224,10 @@ export function useMyBookings() {
     isLoading,
     error,
     updatingId,
+
     refreshBookings: () => fetchBookings(),
+
     updateBookingStatus,
+    cancelBooking,
   };
 }

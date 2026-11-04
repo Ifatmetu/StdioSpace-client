@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -25,7 +24,12 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { useMyBookings } from "@/hooks/use-my-bookings";
 
-type BookingStatus = "pending" | "accepted" | "declined";
+type BookingStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled"
+  | "completed";
 
 type FilterStatus = "all" | BookingStatus;
 
@@ -55,6 +59,10 @@ export default function BookingRequestsPage() {
     (booking) => booking.status === "pending"
   ).length;
 
+  const acceptedCount = bookingRequests.filter(
+    (booking) => booking.status === "accepted"
+  ).length;
+
   const handleStatusUpdate = async (
     bookingId: string,
     status: "accepted" | "declined"
@@ -66,6 +74,23 @@ export default function BookingRequestsPage() {
     if (!confirmed) return;
 
     await updateBookingStatus(bookingId, status);
+  };
+
+  const getStatusStyle = (status: BookingStatus) => {
+    switch (status) {
+      case "accepted":
+        return "bg-green-100 text-green-700";
+
+      case "declined":
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+
+      case "completed":
+        return "bg-blue-100 text-blue-700";
+
+      default:
+        return "bg-yellow-100 text-yellow-700";
+    }
   };
 
   if (!user) {
@@ -83,9 +108,9 @@ export default function BookingRequestsPage() {
               Login to manage your booking requests.
             </p>
 
-            <Button asChild>
-              <Link href="/login">Login</Link>
-            </Button>
+            <Link href="/login">
+              <Button>Login</Button>
+            </Link>
           </CardContent>
         </Card>
       </main>
@@ -98,16 +123,15 @@ export default function BookingRequestsPage() {
 
         {/* Header */}
         <div>
-          <Button
-            asChild
-            variant="ghost"
-            className="mb-4 -ml-3 text-gray-600"
+          <Link
+            href="/profile"
+            className="mb-4 -ml-3 inline-flex"
           >
-            <Link href="/profile">
+            <Button variant="ghost" className="text-gray-600">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Profile
-            </Link>
-          </Button>
+            </Button>
+          </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -125,9 +149,9 @@ export default function BookingRequestsPage() {
               onClick={refreshBookings}
               disabled={isLoading}
             >
-              {isLoading ? (
+              {isLoading && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
+              )}
               Refresh
             </Button>
           </div>
@@ -163,9 +187,7 @@ export default function BookingRequestsPage() {
                 Accepted
               </p>
               <h2 className="text-2xl font-bold text-green-600 mt-2">
-                {bookingRequests.filter(
-                  (booking) => booking.status === "accepted"
-                ).length}
+                {acceptedCount}
               </h2>
             </CardContent>
           </Card>
@@ -173,21 +195,28 @@ export default function BookingRequestsPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          {(["all", "pending", "accepted", "declined"] as FilterStatus[]).map(
-            (status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition ${
-                  filter === status
-                    ? "bg-purple-600 text-white"
-                    : "bg-white text-gray-600 border hover:bg-gray-100"
-                }`}
-              >
-                {status === "all" ? "All Requests" : status}
-              </button>
-            )
-          )}
+          {(
+            [
+              "all",
+              "pending",
+              "accepted",
+              "declined",
+              "cancelled",
+              "completed",
+            ] as FilterStatus[]
+          ).map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition ${
+                filter === status
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-gray-600 border hover:bg-gray-100"
+              }`}
+            >
+              {status === "all" ? "All Requests" : status}
+            </button>
+          ))}
         </div>
 
         {/* Error */}
@@ -197,7 +226,7 @@ export default function BookingRequestsPage() {
           </div>
         )}
 
-        {/* Loading */}
+        {/* Loading and Requests */}
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
@@ -251,18 +280,15 @@ export default function BookingRequestsPage() {
 
                           <p className="flex items-center gap-1 text-sm text-gray-500 mt-2">
                             <MapPin className="h-4 w-4" />
-                            {booking.studioLocation || "Location not specified"}
+                            {booking.studioLocation ||
+                              "Location not specified"}
                           </p>
                         </div>
 
                         <span
-                          className={`capitalize text-xs font-semibold px-3 py-1.5 rounded-full w-fit ${
-                            booking.status === "accepted"
-                              ? "bg-green-100 text-green-700"
-                              : booking.status === "declined"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
+                          className={`capitalize text-xs font-semibold px-3 py-1.5 rounded-full w-fit ${getStatusStyle(
+                            booking.status as BookingStatus
+                          )}`}
                         >
                           {booking.status}
                         </span>
@@ -293,7 +319,7 @@ export default function BookingRequestsPage() {
                         </div>
                       </div>
 
-                      {/* Actions */}
+                      {/* Accept / Decline */}
                       {booking.status === "pending" && (
                         <div className="flex flex-wrap gap-3 mt-5">
                           <Button

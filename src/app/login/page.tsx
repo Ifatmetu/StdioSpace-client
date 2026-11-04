@@ -5,6 +5,8 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Aperture } from "lucide-react";
+import { toast } from "react-hot-toast";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,18 +35,28 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) return;
+    if (!email.trim() || !password) {
+      toast.error("Please enter your email and password.");
+      return;
+    }
 
     setError("");
     setIsSubmitting(true);
 
     try {
       await login(email, password);
+
+      toast.success("Login successful! Welcome to StudioSpace.");
+
       router.push(redirectUrl);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Login failed. Please try again."
-      );
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Login failed. Please try again.";
+
+      setError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

@@ -124,35 +124,64 @@ function toStudio(
     "Studio";
 
   return {
-    id: getString(record, "id", "_id") || `studio-${index}`,
-    title,
-    category,
-    categoryKey,
-    price: getNumber(record, ["price", "hourlyRate"], 0),
-    deposit: getNumber(record, ["deposit"], 0),
-    capacity: getNumber(record, ["capacity", "maxCapacity"], 0),
-    location: getString(record, "location") || "Location not provided",
-    rating: getNumber(record, ["rating"], 0),
-    reviewsCount: getNumber(record, ["reviewsCount"], 0),
-    amenities: getStringArray(record, "amenities"),
-    owner:
-      getString(record, "owner", "hostName", "userName") ||
-      "Studio host",
-    ownerEmail: getString(
+  id: getString(record, "id", "_id") || `studio-${index}`,
+  title,
+  category,
+  categoryKey,
+
+  price: getNumber(record, ["price", "hourlyRate"], 0),
+
+  deposit: getNumber(
+    record,
+    ["deposit", "securityDeposit"],
+    0
+  ),
+
+  capacity: getNumber(
+    record,
+    ["capacity", "maxCapacity"],
+    0
+  ),
+
+  location: getString(record, "location") || "Location not provided",
+
+  rating: getNumber(record, ["rating"], 0),
+
+  reviewsCount: getNumber(
+    record,
+    ["reviewsCount", "reviewCount"],
+    0
+  ),
+
+  amenities: getStringArray(record, "amenities"),
+
+  owner:
+    getString(
       record,
-      "ownerEmail",
-      "hostEmail",
-      "userEmail",
-      "email"
-    ),
-    overview:
-      getString(record, "overview", "description") ||
-      "No description provided.",
-    gradient:
-      CATEGORIES.find((item) => item.key === categoryKey)?.gradient ??
-      "from-[#d6247f] via-[#e83e8c] to-[#ff9a3c]",
-    image: getString(record, "image", "imageUrl") || undefined,
-  };
+      "owner",
+      "ownerName",
+      "hostName",
+      "userName"
+    ) || "Studio host",
+
+  ownerEmail: getString(
+    record,
+    "ownerEmail",
+    "hostEmail",
+    "userEmail",
+    "email"
+  ),
+
+  overview:
+    getString(record, "overview", "description") ||
+    "No description provided.",
+
+  gradient:
+    CATEGORIES.find((item) => item.key === categoryKey)?.gradient ??
+    "from-[#d6247f] via-[#e83e8c] to-[#ff9a3c]",
+
+  image: getString(record, "image", "imageUrl") || undefined,
+};
 }
 
 export function useStudios() {

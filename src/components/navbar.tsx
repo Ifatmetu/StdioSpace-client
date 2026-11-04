@@ -1,14 +1,19 @@
+
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Aperture,
   LogOut,
   Menu,
   PlusCircle,
   User as UserIcon,
+  Loader2,
+  LayoutDashboard,
+  CalendarDays,
+  Building2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,14 +37,37 @@ const NAV_ITEMS = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [currentHash, setCurrentHash] = React.useState("");
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   const { user, logout } = useAuth();
 
-  // 1. Update hash instantly when Next.js Link changes the URL (no reload needed)
+  // Logout and redirect to Home
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    try {
+      setIsLoggingOut(true);
+
+      await logout();
+
+      setUserMenuOpen(false);
+      setIsOpen(false);
+
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Update hash when URL changes
   React.useEffect(() => {
     const updateHash = () => setCurrentHash(window.location.hash);
 
@@ -71,7 +99,7 @@ export function Navbar() {
     };
   }, [pathname]);
 
-  // 2. On the home page, highlight the link of the section currently in view
+  // Highlight current home page section
   React.useEffect(() => {
     if (pathname !== "/") return;
 
@@ -82,21 +110,27 @@ export function Navbar() {
 
       for (const id of sectionIds) {
         const el = document.getElementById(id);
+
         if (el && el.getBoundingClientRect().top <= 120) {
           current = `#${id}`;
         }
       }
 
-      setCurrentHash((prev) => (prev === current ? prev : current));
+      setCurrentHash((prev) =>
+        prev === current ? prev : current
+      );
     };
 
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
 
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, {
+      passive: true,
+    });
+
+    return () =>
+      window.removeEventListener("scroll", onScroll);
   }, [pathname]);
 
-  // Only the current route/section is active
   const isNavActive = (href: string) => {
     if (href === "/") {
       return pathname === "/" && currentHash === "";
@@ -122,10 +156,13 @@ export function Navbar() {
     setUserMenuOpen(false);
   };
 
-  // Update hash state immediately on click
   const handleNavClick = (href: string) => {
     const hashIndex = href.indexOf("#");
-    setCurrentHash(hashIndex >= 0 ? href.slice(hashIndex) : "");
+
+    setCurrentHash(
+      hashIndex >= 0 ? href.slice(hashIndex) : ""
+    );
+
     closeMenus();
   };
 
@@ -175,12 +212,16 @@ export function Navbar() {
           {user ? (
             <div className="relative">
               <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                onClick={() =>
+                  setUserMenuOpen(!userMenuOpen)
+                }
                 className="flex size-10 items-center justify-center rounded-full bg-[#db1a6e] font-bold text-white shadow-xs transition-transform hover:scale-105 active:scale-95"
                 aria-label="User menu"
                 aria-expanded={userMenuOpen}
               >
-                {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                {user.name
+                  ? user.name.charAt(0).toUpperCase()
+                  : "U"}
               </button>
 
               {userMenuOpen && (
@@ -193,7 +234,9 @@ export function Navbar() {
                       {user.name}
                     </p>
 
-                    <p className="text-xs text-slate-500">{user.email}</p>
+                    <p className="text-xs text-slate-500">
+                      {user.email}
+                    </p>
                   </div>
 
                   <div className="py-1">
@@ -224,11 +267,18 @@ export function Navbar() {
 
                   <div className="border-t border-slate-100 pt-1 dark:border-slate-800">
                     <button
-                      onClick={logout}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:hover:bg-rose-950/30"
                     >
-                      <LogOut className="size-4" />
-                      Log out
+                      {isLoggingOut ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <LogOut className="size-4" />
+                      )}
+
+                      {isLoggingOut ? "Logging out..." : "Log out"}
                     </button>
                   </div>
                 </div>
@@ -266,7 +316,10 @@ export function Navbar() {
               <Menu className="size-5" />
             </SheetTrigger>
 
-            <SheetContent side="right" className="w-[300px] sm:w-[350px]">
+            <SheetContent
+              side="right"
+              className="w-[300px] sm:w-[350px]"
+            >
               <SheetHeader className="text-left">
                 <SheetTitle className="flex items-center gap-2 text-lg font-bold">
                   <Aperture className="size-5 text-[#db1a6e]" />
@@ -285,7 +338,9 @@ export function Navbar() {
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => handleNavClick(item.href)}
+                        onClick={() =>
+                          handleNavClick(item.href)
+                        }
                         className={`rounded-lg px-3 py-2 text-base font-medium transition-colors ${
                           isActive
                             ? "bg-pink-50 font-semibold text-[#db1a6e] dark:bg-slate-900"
@@ -304,7 +359,9 @@ export function Navbar() {
                     <>
                       <div className="flex items-center gap-3 px-1 py-2">
                         <div className="flex size-10 items-center justify-center rounded-full bg-[#db1a6e] font-bold text-white">
-                          {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                          {user.name
+                            ? user.name.charAt(0).toUpperCase()
+                            : "U"}
                         </div>
 
                         <div>
@@ -318,7 +375,10 @@ export function Navbar() {
                         </div>
                       </div>
 
-                      <Link href="/profile" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsOpen(false)}
+                      >
                         <Button
                           variant="outline"
                           className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800"
@@ -327,7 +387,10 @@ export function Navbar() {
                         </Button>
                       </Link>
 
-                      <Link href="/my-listings" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/my-listings"
+                        onClick={() => setIsOpen(false)}
+                      >
                         <Button
                           variant="outline"
                           className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800"
@@ -336,7 +399,10 @@ export function Navbar() {
                         </Button>
                       </Link>
 
-                      <Link href="/add-studio" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/add-studio"
+                        onClick={() => setIsOpen(false)}
+                      >
                         <Button className="h-10 w-full rounded-xl bg-[#db1a6e] text-sm font-semibold text-white hover:bg-[#c2135f]">
                           Add New Studio
                         </Button>
@@ -344,19 +410,27 @@ export function Navbar() {
 
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          logout();
-                          setIsOpen(false);
-                        }}
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
                         className="h-10 w-full rounded-xl text-rose-600"
                       >
-                        <LogOut className="mr-2 size-4" />
-                        Log out
+                        {isLoggingOut ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <LogOut className="mr-2 size-4" />
+                        )}
+
+                        {isLoggingOut
+                          ? "Logging out..."
+                          : "Log out"}
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Link href="/login" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/login"
+                        onClick={() => setIsOpen(false)}
+                      >
                         <Button
                           variant="outline"
                           className="h-10 w-full rounded-xl border-slate-200 text-sm font-semibold dark:border-slate-800"
@@ -365,7 +439,10 @@ export function Navbar() {
                         </Button>
                       </Link>
 
-                      <Link href="/register" onClick={() => setIsOpen(false)}>
+                      <Link
+                        href="/register"
+                        onClick={() => setIsOpen(false)}
+                      >
                         <Button className="h-10 w-full rounded-xl bg-[#db1a6e] text-sm font-semibold text-white hover:bg-[#c2135f]">
                           Register
                         </Button>
