@@ -41,7 +41,7 @@ export function FeaturedStudios() {
         {/* Studio Cards Grid */}
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
-            Array.from({ length: 3 }).map((_, index) => (
+            Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
                 className="h-80 animate-pulse rounded-2xl bg-slate-200/80 dark:bg-slate-800"

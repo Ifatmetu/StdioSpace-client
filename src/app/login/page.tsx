@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
+import { authClient } from "@/lib/auth-client";
 
 function LoginForm() {
   const router = useRouter();
@@ -19,13 +20,14 @@ function LoginForm() {
   const requestedRedirect = searchParams.get("redirect");
   const redirectUrl = requestedRedirect || "/";
 
-  const { login, loginWithGoogle, user, isLoading } = useAuth();
+  const { login, user, isLoading } = useAuth();
 
   const [email, setEmail] = React.useState("rina@mail.com");
   const [password, setPassword] = React.useState("password123");
   const [error, setError] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = React.useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] =
+    React.useState(false);
 
   React.useEffect(() => {
     if (!isLoading && user) {
@@ -33,6 +35,7 @@ function LoginForm() {
     }
   }, [user, isLoading, redirectUrl, router]);
 
+  // Email Login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -63,6 +66,32 @@ function LoginForm() {
     }
   };
 
+  // Google Login
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsGoogleSubmitting(true);
+
+      const data = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: redirectUrl,
+      });
+
+      if (data.error) {
+        throw new Error(
+          data.error.message || "Google sign-in failed."
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Google sign-in failed."
+      );
+
+      setIsGoogleSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-140px)] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 rounded-3xl border border-slate-200/90 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900">
@@ -70,6 +99,7 @@ function LoginForm() {
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Aperture className="size-8 text-[#db1a6e]" />
+
             <span className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">
               StudioSpace
             </span>
@@ -84,37 +114,35 @@ function LoginForm() {
           </p>
         </div>
 
+        {/* Google Login Button */}
         <Button
           type="button"
           variant="outline"
           disabled={isGoogleSubmitting || isSubmitting || isLoading}
           className="h-11 w-full rounded-xl border-slate-200 font-semibold dark:border-slate-700"
-          onClick={async () => {
-            try {
-              setIsGoogleSubmitting(true);
-              await loginWithGoogle(`${window.location.origin}${redirectUrl}`);
-            } catch (err) {
-              setIsGoogleSubmitting(false);
-              toast.error(
-                err instanceof Error ? err.message : "Google sign-in failed."
-              );
-            }
-          }}
+          onClick={handleGoogleSignIn}
         >
-          {isGoogleSubmitting ? "Connecting to Google..." : "Continue with Google"}
+          {isGoogleSubmitting
+            ? "Connecting to Google..."
+            : "Continue with Google"}
         </Button>
 
         <div className="relative my-4 flex items-center justify-center">
           <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+
           <span className="absolute bg-white px-3 text-xs font-semibold text-slate-400 uppercase dark:bg-slate-900">
             Or sign in with email
           </span>
         </div>
 
+        {/* Email Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <Label
+              htmlFor="email"
+              className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
               Email address
             </Label>
 
@@ -130,9 +158,13 @@ function LoginForm() {
 
           <div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Label
+                htmlFor="password"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Password
               </Label>
+
               <button
                 type="button"
                 className="text-xs font-semibold text-[#db1a6e] hover:underline"
@@ -164,7 +196,7 @@ function LoginForm() {
 
           <Button
             type="submit"
-            disabled={isSubmitting || isLoading}
+            disabled={isSubmitting || isLoading || isGoogleSubmitting}
             className="h-11 w-full rounded-xl bg-slate-950 font-bold text-white transition-all hover:bg-slate-800 active:scale-98 disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
           >
             {isSubmitting ? "Signing in..." : "Sign in"}
