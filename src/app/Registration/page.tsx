@@ -21,6 +21,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,18 +71,21 @@ export default function Register() {
         <Button
           type="button"
           variant="outline"
+          disabled={googleLoading || loading}
           className="h-11 w-full rounded-xl border-slate-200 font-semibold dark:border-slate-700"
           onClick={async () => {
             try {
+              setGoogleLoading(true);
               await loginWithGoogle(`${window.location.origin}/`);
             } catch (err) {
+              setGoogleLoading(false);
               toast.error(
                 err instanceof Error ? err.message : "Google sign-in failed."
               );
             }
           }}
         >
-          Continue with Google
+          {googleLoading ? "Connecting to Google..." : "Continue with Google"}
         </Button>
 
         <form onSubmit={handleRegister} className="space-y-4">
@@ -141,7 +145,7 @@ export default function Register() {
           </div>
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || googleLoading}
             className="h-11 w-full rounded-xl bg-[#db1a6e] font-bold text-white hover:bg-[#c2135f]"
           >
             {loading ? "Registering..." : "Register"}

@@ -25,6 +25,7 @@ function LoginForm() {
   const [password, setPassword] = React.useState("password123");
   const [error, setError] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (!isLoading && user) {
@@ -86,18 +87,21 @@ function LoginForm() {
         <Button
           type="button"
           variant="outline"
+          disabled={isGoogleSubmitting || isSubmitting || isLoading}
           className="h-11 w-full rounded-xl border-slate-200 font-semibold dark:border-slate-700"
           onClick={async () => {
             try {
+              setIsGoogleSubmitting(true);
               await loginWithGoogle(`${window.location.origin}${redirectUrl}`);
             } catch (err) {
+              setIsGoogleSubmitting(false);
               toast.error(
                 err instanceof Error ? err.message : "Google sign-in failed."
               );
             }
           }}
         >
-          Continue with Google
+          {isGoogleSubmitting ? "Connecting to Google..." : "Continue with Google"}
         </Button>
 
         <div className="relative my-4 flex items-center justify-center">

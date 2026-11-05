@@ -1,9 +1,11 @@
-
 import { createAuthClient } from "better-auth/react";
 import { jwtClient } from "better-auth/client/plugins";
 
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+const baseURL = rawBaseUrl.replace(/\/+$/, "");
+
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: baseURL || undefined,
 
   plugins: [jwtClient()],
 

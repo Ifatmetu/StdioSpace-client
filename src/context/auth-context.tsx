@@ -75,13 +75,17 @@ export function AuthProvider({
   };
 
   const loginWithGoogle = async (callbackURL: string) => {
-    const { error } = await authClient.signIn.social({
+    const result = await authClient.signIn.social({
       provider: "google",
       callbackURL,
     });
 
-    if (error) {
-      throw new Error(error.message || "Google sign-in failed.");
+    if (result?.error) {
+      throw new Error(result.error.message || "Google sign-in failed.");
+    }
+
+    if (result?.data?.url) {
+      window.location.href = result.data.url;
     }
   };
 
